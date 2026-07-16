@@ -4,6 +4,32 @@
   "private": true,
   "license": "MIT",
   "type": "module",
-  "scripts": { "dev": "wxt", "build": "wxt build", "test": "bun test" },
-  "devDependencies": { "@types/chrome": "^0.0.306", "wxt": "^0.20.6" }
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.306",
+    "wxt": "^0.20.6"
+  },
+  "description": "Local-first Chrome utility for tabs, page controls, redirects, cookies, and session-scoped UA headers.",
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "tabs",
+    "privacy",
+    "productivity",
+    "local-first",
+    "browser-utility"
+  ],
+  "author": "Daedalus contributors",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jvillegasd/daedalus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jvillegasd/daedalus/issues"
+  },
+  "homepage": "https://github.com/jvillegasd/daedalus#readme"
 }
