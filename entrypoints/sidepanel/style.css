@@ -1,0 +1,1 @@
+body{font:14px system-ui;margin:16px;color:#202124}main{display:grid;gap:18px}h1,h2{margin:0 0 8px}h2{font-size:16px}section{border:1px solid #ddd;border-radius:8px;padding:10px}input,button,select,textarea{padding:6px;margin:3px 0}textarea,pre{width:100%;box-sizing:border-box;min-height:80px;white-space:pre-wrap}article{padding:5px 0;border-bottom:1px solid #eee}

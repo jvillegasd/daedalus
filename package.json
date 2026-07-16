@@ -1,0 +1,9 @@
+{
+  "name": "daedalus",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": { "dev": "wxt", "build": "wxt build", "test": "bun test" },
+  "devDependencies": { "@types/chrome": "^0.0.306", "wxt": "^0.20.6" }
+}
