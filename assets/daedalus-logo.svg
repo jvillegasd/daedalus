@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 220" role="img" aria-labelledby="title">
+  <title>Daedalus</title>
+  <rect x="8" y="8" width="204" height="204" rx="48" fill="#0F172A"/>
+  <path d="M59 73c0-10 8-18 18-18h46l23 24h32c10 0 18 8 18 18v76c0 10-8 18-18 18H77c-10 0-18-8-18-18V73Z" fill="#1E293B" stroke="#7DD3FC" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M97 104h55v24h-31v32h31" fill="none" stroke="#F8FAFC" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="152" cy="160" r="9" fill="#38BDF8"/>
+  <text x="250" y="142" fill="#0F172A" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="104" font-weight="700" letter-spacing="-4">Daedalus</text>
+</svg>

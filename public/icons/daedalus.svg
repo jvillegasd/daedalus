@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title>Daedalus</title>
-  <defs><linearGradient id="g" x1="88" y1="60" x2="424" y2="452" gradientUnits="userSpaceOnUse"><stop stop-color="#72e8d1"/><stop offset="1" stop-color="#3d67e8"/></linearGradient></defs>
-  <rect width="512" height="512" rx="112" fill="#101827"/>
-  <path d="M256 92c-91 0-164 73-164 164s73 164 164 164c69 0 128-43 152-103h-58c-22 29-56 47-94 47-65 0-118-53-118-118s53-118 118-118c38 0 72 18 94 47h58C384 135 325 92 256 92Z" fill="url(#g)"/>
-  <path d="M256 175c-45 0-81 36-81 81s36 81 81 81c31 0 59-18 72-44h-58c-8 5-17 8-27 8-25 0-45-20-45-45s20-45 45-45c10 0 19 3 27 8h58c-13-26-41-44-72-44Z" fill="#101827"/>
-  <path d="M303 231h92v50h-92z" fill="url(#g)"/>
+  <rect width="512" height="512" rx="116" fill="#0F172A"/>
+  <!-- A tab-shaped labyrinth: save, organize, and navigate browser work. -->
+  <path d="M128 144c0-18 14-32 32-32h92l35 36h65c18 0 32 14 32 32v188c0 18-14 32-32 32H160c-18 0-32-14-32-32V144Z" fill="#1E293B" stroke="#7DD3FC" stroke-width="18" stroke-linejoin="round"/>
+  <path d="M189 210h134v58h-76v77h76v-1" fill="none" stroke="#F8FAFC" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="323" cy="344" r="19" fill="#38BDF8"/>
 </svg>
