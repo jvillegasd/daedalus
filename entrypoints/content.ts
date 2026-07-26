@@ -23,17 +23,9 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
       const s = document.createElement('style'); s.textContent = darkCss; document.documentElement.append(s);
       onReady(() => { s.remove(); if (pageLuminance() >= 0.4) document.documentElement.append(s); });
     }
-    // Playback you asked for starts within milliseconds of a click or keypress; playback a
-    // feed starts on its own does not. userActivation.hasBeenActive can't tell them apart on
-    // a single-page app — it latches true at your first click and never resets — so track
-    // when the last gesture happened instead. ponytail: 1s window, widen it if a site's
-    // player is slow enough to get caught.
-    if (!has(prefs?.autoplayAllowlist)) {
-      let lastGesture = 0;
-      const mark = () => { lastGesture = Date.now(); };
-      for (const type of ['pointerdown', 'keydown']) addEventListener(type, mark, true);
-      addEventListener('play', e => { if (Date.now() - lastGesture > 1000) (e.target as HTMLMediaElement).pause(); }, true);
-    }
+    // The blocking itself happens in autoplay.content.ts, which runs in the page's world and
+    // can patch HTMLMediaElement. It can't read prefs from there, so hand it the verdict.
+    if (!has(prefs?.autoplayAllowlist)) document.documentElement.dataset.daedalusAutoplay = 'block';
     if (has(prefs?.consentDomains)) onReady(() => setTimeout(() => [...document.querySelectorAll('button,input[type=button]')].find((b: any) => /reject|decline|necessary only|essential only/i.test(b.textContent || b.value || ''))?.click(), 500));
   });
 } });
