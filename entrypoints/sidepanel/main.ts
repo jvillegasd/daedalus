@@ -95,13 +95,34 @@ el('groups').onclick = async e => {
   render();
 };
 const escape = (s: string) => s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]!));
-async function syncTarget() { const p = await prefs(); const domain = host(await tab()); el('target').textContent = domain ? `Acting on ${domain} — applies on next reload.` : 'No page tab found.'; for (const [id, field] of toggles) el(id).setAttribute('aria-pressed', String(p[field].includes(domain))); }
+const labels = { darkExcluded: 'Dark mode exceptions', autoplayAllowlist: 'Autoplay allowed', consentDomains: 'Auto-reject consent' } as const;
+
+async function syncTarget() {
+  const p = await prefs();
+  const domain = host(await tab());
+  el('target').textContent = domain ? `Acting on ${domain} — applies on next reload.` : 'No page tab found.';
+  for (const [id, field] of toggles) el(id).setAttribute('aria-pressed', String(p[field].includes(domain)));
+  // The toggles only ever show the current tab, so list every domain each one holds.
+  el('domains').innerHTML = toggles.map(([, field]) => `<div class="field">
+    <span>${labels[field]}</span>
+    <div class="tags">${p[field].map(d => `<span class="chip">${escape(d)}<button class="chip-x" data-field="${field}" data-domain="${escape(d)}" aria-label="Remove ${escape(d)}">×</button></span>`).join('') || '<span class="hint">None.</span>'}</div>
+  </div>`).join('');
+}
+
+el('domains').onclick = async e => {
+  const button = (e.target as HTMLElement).closest('button[data-field]') as HTMLElement | null;
+  if (!button) return;
+  const field = button.dataset.field as typeof toggles[number][1];
+  const p = await prefs();
+  await savePrefs({ [field]: p[field].filter(d => d !== button.dataset.domain) });
+  syncTarget();
+};
 chrome.tabs.onActivated.addListener(() => syncTarget());
 chrome.tabs.onUpdated.addListener((_, change) => { if (change.url) syncTarget(); });
 el('darkGlobal').onchange = () => savePrefs({ darkEnabled: el('darkGlobal').checked });
 (async () => { const p = await prefs(); el('darkGlobal').checked=p.darkEnabled; el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('exclude').value=p.excludedDomains.join(','); syncTarget(); render(); })();
 el('trace').onclick = async () => { const t = await tab(); show('Redirect chain', await chrome.runtime.sendMessage({ type:'redirects', tabId:t.id })); };
-for (const [id, field] of toggles) el(id).onclick = async () => { const t=await tab(); const enabled=await chrome.runtime.sendMessage({type:'toggle-pref', field, domain:host(t)}); el(id).setAttribute('aria-pressed', String(enabled)); };
+for (const [id, field] of toggles) el(id).onclick = async () => { const t=await tab(); await chrome.runtime.sendMessage({type:'toggle-pref', field, domain:host(t)}); syncTarget(); };
 el('cookies').onclick = async () => { const t=await tab(); currentCookies = await chrome.runtime.sendMessage({ type:'cookies', windowId:t.windowId }); show(`Cookies in this window (${currentCookies.length})`, currentCookies); };
 el('ua').onchange = async () => { const t=await tab(), name=el('ua').value as keyof typeof uaProfiles; if(name) await chrome.runtime.sendMessage({ type:'ua', windowId:t.windowId, domain:host(t), value:uaProfiles[name] }); };
 el('prefs').onclick = async () => { await savePrefs({ cleanerEnabled:el('cleaner').checked, cleanerMinutes:Number(el('minutes').value)||60, excludedDomains:el('exclude').value.split(',').map(x=>x.trim()).filter(Boolean) }); el('saved').textContent='Saved.'; setTimeout(()=>{ el('saved').textContent=''; }, 2000); };

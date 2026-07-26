@@ -85,10 +85,11 @@ article .name {
 article .name:hover { border-color: var(--border); }
 article .name:focus { border-color: var(--accent); background: var(--bg); outline: none; }
 
-article .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-article .chip { display: inline-flex; align-items: center; gap: 3px; padding-right: 3px; }
-article .chip-x { font: inherit; line-height: 1; border: 0; background: none; color: inherit; cursor: pointer; padding: 0 2px; border-radius: 999px; }
-article .chip-x:hover { color: var(--danger); }
+#domains { display: grid; gap: var(--gap); }
+.tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 3px; padding-right: 3px; }
+.chip-x { font: inherit; line-height: 1; border: 0; background: none; color: inherit; cursor: pointer; padding: 0 2px; border-radius: 999px; }
+.chip-x:hover { color: var(--danger); }
 article .tag-add {
   font: inherit;
   font-size: 12px;
