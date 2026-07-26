@@ -8,9 +8,14 @@
     </header>
     <main>
       <label class="field"><span>Group name</span><input id="name" placeholder="Read later" /></label>
-      <label class="field"><span>Tags</span><input id="tags" placeholder="comma, separated" /></label>
-      <label class="field-row"><input id="selected" type="checkbox" /> Selected tabs only</label>
-      <button id="save" class="btn btn-primary" type="button">Save tabs &amp; close</button>
+      <div class="field">
+        <span>Tags</span>
+        <div id="tags" class="tags"><input id="tagInput" class="tag-add" placeholder="+ tag" aria-label="Add tag" /></div>
+      </div>
+      <div class="row">
+        <button id="save" class="btn btn-primary" type="button">Save tabs</button>
+        <button id="saveClose" class="btn" type="button">Save &amp; close</button>
+      </div>
       <p id="status" role="status"></p>
     </main>
     <script type="module" src="./main.ts"></script>

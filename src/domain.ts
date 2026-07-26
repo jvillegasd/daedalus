@@ -6,6 +6,8 @@ export const matchesDomain = (url: string, domains: string[]) => { const host = 
 export const luminance = (color: string) => { const [r, g, b, a] = (color.match(/[\d.]+/g) ?? []).map(Number); if (r === undefined || g === undefined || b === undefined || a === 0) return null; return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
 export const eligibleForCleaning = (tab: chrome.tabs.Tab, excluded: string[]) =>
   !!tab.id && !tab.active && !tab.pinned && !tab.audible && !tab.discarded && !!tab.url && !matchesDomain(tab.url, excluded) && !tab.url.startsWith('chrome:');
+/** Move one entry by `delta` positions, clamped: out-of-range moves return the list unchanged. */
+export const move = <T>(list: T[], index: number, delta: number) => { const to = index + delta; if (index < 0 || index >= list.length || to < 0 || to >= list.length) return list; const next = [...list]; next.splice(to, 0, ...next.splice(index, 1)); return next; };
 export const addRestore = (history: RestoreTab[], tabs: SavedTab[]) => [...tabs.map(t => ({ ...t, closedAt: Date.now() })), ...history].slice(0, 100);
 export const reduceRedirect = (chain: { url: string; statusCode?: number }[], url: string, statusCode?: number) =>
   chain.at(-1)?.url === url ? [...chain.slice(0, -1), { url, statusCode: statusCode ?? chain.at(-1)?.statusCode }] : [...chain, { url, statusCode }];

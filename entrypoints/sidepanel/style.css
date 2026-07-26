@@ -1,8 +1,17 @@
 @import '../theme.css';
 
-body { height: 100vh; display: grid; grid-template-rows: auto 1fr; }
+/* One page serves two contexts: the Chrome side panel (~400px) and the options page in a
+   full tab. Wide gets a left rail like the bookmark manager; narrow stacks the nav on top. */
+body {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: 'head head' 'nav main';
+}
 
 header {
+  grid-area: head;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -12,44 +21,99 @@ header {
 }
 header h1 { font-size: 15px; margin: 0; }
 
-main { overflow-y: auto; display: grid; align-content: start; gap: 12px; padding: 14px; }
-
-section {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 12px;
-  display: grid;
-  gap: var(--gap);
+nav {
+  grid-area: nav;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px;
+  border-right: 1px solid var(--border);
+  overflow: auto;
 }
-h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0; }
+.nav-item {
+  font: inherit;
+  text-align: left;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.nav-item:hover { background: var(--surface); }
+.nav-item[aria-current='true'] { background: var(--accent); color: var(--accent-text); }
+.nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+main { grid-area: main; overflow-y: auto; padding: 16px; }
+section { display: grid; align-content: start; gap: var(--gap); max-width: 780px; min-width: 0; }
+section[hidden] { display: none; }  /* display:grid above would otherwise beat the UA [hidden] rule */
+h2 { font-size: 16px; margin: 0 0 4px; }
+
+@media (max-width: 620px) {
+  /* three areas now, so the track list needs three rows or the nav claims the flexible one */
+  body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'head' 'nav' 'main'; }
+  nav { flex-direction: row; align-items: center; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 8px; }
+  .nav-item { padding: 5px 10px; font-size: 13px; }
+  main { padding: 14px; }
+}
 
 .row, .toggles { display: flex; flex-wrap: wrap; gap: 8px; }
-.toggles .btn { flex: 1; min-width: 100px; }
+.toggles .btn { flex: 1; min-width: 120px; }
 
-/* group list */
-article { display: grid; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--border); }
-article:last-child { border-bottom: 0; padding-bottom: 0; }
-article .title { display: flex; align-items: baseline; gap: 6px; }
-article .title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* saved lists */
+article { display: grid; gap: 6px; padding: 10px 0; min-width: 0; }
+article + article { border-top: 1px solid var(--border); }
+article .title { display: flex; align-items: center; gap: 6px; min-width: 0; }
 article .count { color: var(--muted); font-size: 12px; }
-article .actions { display: flex; gap: 6px; }
+article .actions { display: flex; flex-wrap: wrap; gap: 6px; }
 article .btn { padding: 4px 10px; font-size: 12px; }
+article .btn.icon { padding: 2px 6px; line-height: 1; }
+
+article .name {
+  font: inherit;
+  font-weight: 700;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  padding: 2px 5px;
+  margin-left: -5px;
+}
+article .name:hover { border-color: var(--border); }
+article .name:focus { border-color: var(--accent); background: var(--bg); outline: none; }
+
+#domains { display: grid; gap: var(--gap); }
+article ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+article li { display: flex; align-items: center; gap: 4px; min-width: 0; }
+article li .link {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 3px 0;
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+article li .link:hover { color: var(--accent); text-decoration: underline; }
 
 #inspect {
   margin: 0;
-  max-height: 220px;
+  max-height: 60vh;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
   font-size: 12px;
-  background: var(--bg);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 8px;
 }
 #inspect:empty { display: none; }
-
-details { display: grid; gap: var(--gap); }
-summary { cursor: pointer; }
-summary h2 { display: inline; }

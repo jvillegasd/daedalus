@@ -69,14 +69,31 @@ body {
 .field-row { display: flex; align-items: center; gap: 8px; }
 .field-row input[type='checkbox'] { margin: 0; }
 
+.tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .chip {
-  display: inline-block;
-  padding: 1px 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 3px 1px 7px;
   border-radius: 999px;
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--muted);
   font-size: 11px;
 }
+.chip-x { font: inherit; line-height: 1; border: 0; background: none; color: inherit; cursor: pointer; padding: 0 2px; border-radius: 999px; }
+.chip-x:hover { color: var(--danger); }
+.tags .tag-add {
+  font: inherit;
+  font-size: 12px;
+  width: 5.5em;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  padding: 1px 7px;
+}
+.tags .tag-add:hover { border-color: var(--border); }
+.tags .tag-add:focus { border-color: var(--accent); background: var(--bg); outline: none; }
 
 .hint { color: var(--muted); font-size: 12px; margin: 0; }

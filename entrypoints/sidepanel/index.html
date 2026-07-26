@@ -5,14 +5,23 @@
       <img src="/icons/icon-32.png" alt="" width="20" height="20" />
       <h1>Daedalus</h1>
     </header>
+
+    <nav id="nav" aria-label="Sections">
+      <button class="nav-item" data-view="lists" type="button">Read later</button>
+      <button class="nav-item" data-view="page" type="button">Page controls</button>
+      <button class="nav-item" data-view="inspector" type="button">Inspector</button>
+      <button class="nav-item" data-view="cleaner" type="button">Tab cleaner</button>
+      <button class="nav-item" data-view="cookies" type="button">Cookies</button>
+    </nav>
+
     <main>
-      <section>
+      <section id="view-lists">
         <h2>Read later</h2>
         <div id="groups"></div>
       </section>
 
-      <section>
-        <h2>Current tab</h2>
+      <section id="view-page" hidden>
+        <h2>Page controls</h2>
         <label class="field-row"><input id="darkGlobal" type="checkbox" /> Dark mode on all sites</label>
         <div class="toggles">
           <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
@@ -20,6 +29,7 @@
           <button id="consent" class="btn" type="button" aria-pressed="false">Reject consent</button>
         </div>
         <p id="target" class="hint">Per-domain, applied on next reload.</p>
+        <div id="domains"></div>
         <label class="field">
           <span>User-agent override</span>
           <select id="ua">
@@ -31,7 +41,7 @@
         <p class="hint">Request headers only, for this window, until Chrome restarts.</p>
       </section>
 
-      <section>
+      <section id="view-inspector" hidden>
         <h2>Inspector</h2>
         <div class="row">
           <button id="trace" class="btn" type="button">Redirect trace</button>
@@ -41,7 +51,7 @@
         <pre id="inspect"></pre>
       </section>
 
-      <section>
+      <section id="view-cleaner" hidden>
         <h2>Tab cleaner</h2>
         <label class="field-row"><input id="cleaner" type="checkbox" /> Auto-close inactive tabs</label>
         <label class="field"><span>Inactive for (minutes)</span><input id="minutes" type="number" min="1" value="60" /></label>
@@ -53,16 +63,14 @@
         <p id="saved" role="status" class="hint"></p>
       </section>
 
-      <section>
-        <details>
-          <summary><h2>Cookies</h2></summary>
-          <div class="row">
-            <button id="export" class="btn" type="button">Export displayed</button>
-            <button id="import" class="btn btn-danger" type="button">Import JSON</button>
-          </div>
-          <p class="hint">Import replaces matching cookies in your Chrome profile.</p>
-          <label class="field"><span>Cookie JSON</span><textarea id="json" rows="6"></textarea></label>
-        </details>
+      <section id="view-cookies" hidden>
+        <h2>Cookies</h2>
+        <div class="row">
+          <button id="export" class="btn" type="button">Export displayed</button>
+          <button id="import" class="btn btn-danger" type="button">Import JSON</button>
+        </div>
+        <p class="hint">Export writes whatever the Inspector last fetched. Import replaces matching cookies in your Chrome profile.</p>
+        <label class="field"><span>Cookie JSON</span><textarea id="json" rows="12"></textarea></label>
       </section>
     </main>
     <script type="module" src="./main.ts"></script>
