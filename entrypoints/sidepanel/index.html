@@ -1,1 +1,69 @@
-<!doctype html><html><body><main><h1>Daedalus</h1><section><h2>Read later</h2><div id="groups"></div></section><section><h2>Current tab</h2><button id="trace">Redirect trace</button><button id="dark">Toggle dark mode</button><button id="autoplay">Toggle autoplay allow</button><button id="consent">Toggle consent reject</button><button id="cookies">Cookies in this window</button><select id="ua"><option value="">Header-only UA override…</option><option>Chrome Android</option><option>Firefox Linux</option></select><pre id="inspect"></pre></section><section><h2>Tab cleaner</h2><label><input id="cleaner" type="checkbox"> Auto-close inactive tabs</label> <input id="minutes" type="number" min="1" value="60"> minutes<br><input id="exclude" placeholder="excluded domains, comma-separated"><button id="prefs">Save cleaner</button><button id="restore">Restore last closed</button></section><section><h2>Cookies</h2><button id="export">Export displayed cookies</button><button id="import">Import JSON (replaces matching cookies)</button><textarea id="json" placeholder="Cookie JSON"></textarea></section></main><script type="module" src="./main.ts"></script></body></html>
+<!doctype html>
+<html>
+  <body>
+    <header>
+      <img src="/icons/icon-32.png" alt="" width="20" height="20" />
+      <h1>Daedalus</h1>
+    </header>
+    <main>
+      <section>
+        <h2>Read later</h2>
+        <div id="groups"></div>
+      </section>
+
+      <section>
+        <h2>Current tab</h2>
+        <div class="toggles">
+          <button id="dark" class="btn" type="button" aria-pressed="false">Dark mode</button>
+          <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay</button>
+          <button id="consent" class="btn" type="button" aria-pressed="false">Reject consent</button>
+        </div>
+        <p id="target" class="hint">Per-domain, applied on next reload.</p>
+        <label class="field">
+          <span>User-agent override</span>
+          <select id="ua">
+            <option value="">None</option>
+            <option>Chrome Android</option>
+            <option>Firefox Linux</option>
+          </select>
+        </label>
+        <p class="hint">Request headers only, for this window, until Chrome restarts.</p>
+      </section>
+
+      <section>
+        <h2>Inspector</h2>
+        <div class="row">
+          <button id="trace" class="btn" type="button">Redirect trace</button>
+          <button id="cookies" class="btn" type="button">Cookies in window</button>
+        </div>
+        <p id="caption" class="hint">Nothing inspected yet.</p>
+        <pre id="inspect"></pre>
+      </section>
+
+      <section>
+        <h2>Tab cleaner</h2>
+        <label class="field-row"><input id="cleaner" type="checkbox" /> Auto-close inactive tabs</label>
+        <label class="field"><span>Inactive for (minutes)</span><input id="minutes" type="number" min="1" value="60" /></label>
+        <label class="field"><span>Never close these domains</span><input id="exclude" placeholder="example.com, mail.google.com" /></label>
+        <div class="row">
+          <button id="prefs" class="btn btn-primary" type="button">Save cleaner</button>
+          <button id="restore" class="btn" type="button">Restore last closed</button>
+        </div>
+        <p id="saved" role="status" class="hint"></p>
+      </section>
+
+      <section>
+        <details>
+          <summary><h2>Cookies</h2></summary>
+          <div class="row">
+            <button id="export" class="btn" type="button">Export displayed</button>
+            <button id="import" class="btn btn-danger" type="button">Import JSON</button>
+          </div>
+          <p class="hint">Import replaces matching cookies in your Chrome profile.</p>
+          <label class="field"><span>Cookie JSON</span><textarea id="json" rows="6"></textarea></label>
+        </details>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -11,7 +11,9 @@ type UaOverride = { windowId: number; domain: string; value: string };
 const tabData = (t: chrome.tabs.Tab): SavedTab => ({ url: t.url!, title: t.title || t.url!, favIconUrl: t.favIconUrl, pinned: t.pinned });
 
 export default defineBackground(() => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+  // ponytail: optional — chrome.sidePanel is absent on browsers that don't ship the API,
+  // and an unguarded call here kills the whole service worker on startup.
+  chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
   chrome.contextMenus.create({ id: 'lens', title: 'Search image with Google Lens', contexts: ['image'] });
   chrome.contextMenus.create({ id: 'bing', title: 'Search image with Bing', contexts: ['image'] });
   chrome.contextMenus.create({ id: 'yandex', title: 'Search image with Yandex', contexts: ['image'] });
@@ -42,7 +44,7 @@ export default defineBackground(() => {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => { (async () => {
     const windowId = message.windowId ?? sender.tab?.windowId;
     if (message.type === 'unsaved') { message.value ? unsaved.add(sender.tab!.id!) : unsaved.delete(sender.tab!.id!); return; }
-    if (message.type === 'save-tabs') { const tabs = await chrome.tabs.query({ windowId, ...(message.selected ? { highlighted: true } : {}) }); const kept = tabs.filter(t => t.url && !t.url.startsWith('chrome:')); const group: TabGroup = { id: crypto.randomUUID(), name: message.name || 'Read later', tags: (message.tags || '').split(',').map((x: string) => x.trim()).filter(Boolean), tabs: kept.map(tabData), createdAt: Date.now() }; await saveGroup(group); if (message.close) await chrome.tabs.remove(kept.map(t => t.id!)); sendResponse(group); }
+    if (message.type === 'save-tabs') { const tabs = await chrome.tabs.query({ windowId, ...(message.selected ? { highlighted: true } : {}) }); const kept = tabs.filter(t => t.url && !t.url.startsWith('chrome:')); const group: TabGroup = { id: crypto.randomUUID(), name: message.name || 'Read later', tags: (message.tags || '').split(',').map((x: string) => x.trim()).filter(Boolean), tabs: kept.map(tabData), createdAt: Date.now() }; await saveGroup(group); sendResponse(group); if (message.close && kept.length) await chrome.tabs.remove(kept.map(t => t.id!)); }
     if (message.type === 'restore') { const old = ((await chrome.storage.session.get(key.restore))[key.restore] ?? []) as RestoreTab[]; await chrome.tabs.create({ windowId, url: message.tab.url, active: false }); await chrome.storage.session.set({ [key.restore]: old.filter(t => !(t.url === message.tab.url && t.closedAt === message.tab.closedAt)) }); }
     if (message.type === 'redirects') sendResponse(redirects.get(message.tabId) ?? []);
     if (message.type === 'cookies') { const domains = scopedDomains(await chrome.tabs.query({ windowId })); const all = await chrome.cookies.getAll({}); sendResponse(all.filter(c => domains.some(d => c.domain.replace(/^\./, '') === d || d.endsWith(c.domain.replace(/^\./, ''))))); }
