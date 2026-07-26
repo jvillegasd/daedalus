@@ -56,6 +56,9 @@
         <label class="field-row"><input id="cleaner" type="checkbox" /> Auto-close inactive tabs</label>
         <label class="field"><span>Inactive for (minutes)</span><input id="minutes" type="number" min="1" value="60" /></label>
         <label class="field"><span>Never close these domains</span><input id="exclude" placeholder="example.com, mail.google.com" /></label>
+        <label class="field-row"><input id="cleanerSave" type="checkbox" /> Save closed tabs to a list first</label>
+        <label class="field"><span>List name</span><input id="cleanerList" placeholder="Auto-saved" /></label>
+        <p class="hint">Off, tabs are only recoverable with "Restore last closed" until the browser restarts.</p>
         <div class="row">
           <button id="prefs" class="btn btn-primary" type="button">Save cleaner</button>
           <button id="restore" class="btn" type="button">Restore last closed</button>
