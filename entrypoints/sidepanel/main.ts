@@ -24,7 +24,10 @@ const card = (g: TabGroup) => `<article data-group="${g.id}">
     <button class="btn icon" data-act="group-up" aria-label="Move list up">↑</button>
     <button class="btn icon" data-act="group-down" aria-label="Move list down">↓</button>
   </div>
-  <input class="tags" data-act="retag" value="${escape(g.tags.join(', '))}" placeholder="tags, comma-separated" aria-label="List tags" />
+  <div class="tags">
+    ${g.tags.map((t, i) => `<span class="chip">${escape(t)}<button class="chip-x" data-act="tag-remove" data-tag="${i}" aria-label="Remove tag ${escape(t)}">×</button></span>`).join('')}
+    <input class="tag-add" data-act="tag-add" placeholder="+ tag" aria-label="Add tag" />
+  </div>
   <ul>${g.tabs.map(item).join('') || '<li class="hint">Empty list.</li>'}</ul>
   <div class="actions">
     <button class="btn" data-act="open-all">Open all</button>
@@ -42,9 +45,13 @@ el('groups').onchange = async e => {
   if (!input) return;
   const id = (input.closest('article') as HTMLElement).dataset.group;
   const list = await groups();
+  const group = list.find(g => g.id === id);
+  if (!group) return;
+  // One field accepts several tags at once, and adding one you already have is a no-op.
+  const added = input.value.split(',').map(t => t.trim()).filter(t => t && !group.tags.includes(t));
   const patch = input.dataset.act === 'rename'
     ? { name: input.value.trim() || 'Untitled list' }
-    : { tags: input.value.split(',').map(t => t.trim()).filter(Boolean) };
+    : { tags: [...group.tags, ...added] };
   await setGroups(list.map(g => g.id === id ? { ...g, ...patch } : g));
   render();
 };
@@ -63,6 +70,7 @@ el('groups').onclick = async e => {
     case 'open': return void chrome.tabs.create({ url: g.tabs[i].url });
     case 'open-all': for (const t of g.tabs) await chrome.tabs.create({ url: t.url, active: false }); return;
     case 'add-current': { const t = await tab(); if (!t?.url) return; await setGroups(withTabs([...g.tabs, { url: t.url, title: t.title || t.url, favIconUrl: t.favIconUrl, pinned: t.pinned }])); break; }
+    case 'tag-remove': { const t = Number(button.dataset.tag); await setGroups(list.map((x, n) => n === gi ? { ...x, tags: x.tags.filter((_, k) => k !== t) } : x)); break; }
     case 'tab-remove': await setGroups(withTabs(g.tabs.filter((_, n) => n !== i))); break;
     case 'tab-up': await setGroups(withTabs(move(g.tabs, i, -1))); break;
     case 'tab-down': await setGroups(withTabs(move(g.tabs, i, 1))); break;
