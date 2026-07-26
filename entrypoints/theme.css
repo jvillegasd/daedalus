@@ -1,0 +1,82 @@
+:root {
+  --bg: #fff;
+  --surface: #f7f8fa;
+  --text: #1f2126;
+  --muted: #6b7280;
+  --border: #dfe3e8;
+  --accent: #2f5bea;
+  --accent-text: #fff;
+  --danger: #c0392b;
+  --ok: #1a7f4b;
+  --radius: 8px;
+  --gap: 10px;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1d21;
+    --surface: #23262b;
+    --text: #e6e8ec;
+    --muted: #9aa1ac;
+    --border: #35393f;
+    --accent: #6d8dff;
+    --accent-text: #10121a;
+    --danger: #ff7a6b;
+    --ok: #57c98a;
+  }
+}
+
+body {
+  font: 14px/1.45 system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  margin: 0;
+}
+
+.btn {
+  font: inherit;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn-danger { color: var(--danger); }
+.btn[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+
+.field { display: grid; gap: 4px; }
+.field > span { color: var(--muted); font-size: 12px; }
+.field input, .field select, .field textarea {
+  font: inherit;
+  padding: 7px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+  box-sizing: border-box;
+}
+/* ponytail: Chrome sizes dropdown rows from the select's own metrics — inheriting
+   line-height 1.45 and the field padding makes the open list oversized. */
+.field select { line-height: normal; }
+.field option { font-size: 13px; line-height: normal; padding: 0; }
+
+.field-row { display: flex; align-items: center; gap: 8px; }
+.field-row input[type='checkbox'] { margin: 0; }
+
+.chip {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.hint { color: var(--muted); font-size: 12px; margin: 0; }
