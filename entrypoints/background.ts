@@ -17,12 +17,20 @@ export default defineBackground(() => {
   // ponytail: optional — chrome.sidePanel is absent on browsers that don't ship the API,
   // and an unguarded call here kills the whole service worker on startup.
   chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
-  chrome.contextMenus.create({ id: 'lens', title: 'Search image with Google Lens', contexts: ['image'] });
-  chrome.contextMenus.create({ id: 'bing', title: 'Search image with Bing', contexts: ['image'] });
-  chrome.contextMenus.create({ id: 'yandex', title: 'Search image with Yandex', contexts: ['image'] });
+  // Menus outlive the service worker, so re-creating them on every wake fails with a
+  // duplicate-id error. onInstalled is the one place they need creating.
+  chrome.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.removeAll(() => {
+      chrome.contextMenus.create({ id: 'lens', title: 'Search image with Google Lens', contexts: ['image'] });
+      chrome.contextMenus.create({ id: 'bing', title: 'Search image with Bing', contexts: ['image'] });
+      chrome.contextMenus.create({ id: 'yandex', title: 'Search image with Yandex', contexts: ['image'] });
+    });
+  });
   chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (!info.srcUrl || !tab?.windowId) return;
-    if (!/^https?:/i.test(info.srcUrl)) { chrome.action.setBadgeText({ tabId: tab.id, text: 'URL' }); return; }
+    // data: and blob: images have no URL a provider could fetch. Say so briefly rather than
+    // leaving the badge stuck on the tab forever.
+    if (!/^https?:/i.test(info.srcUrl)) { chrome.action.setBadgeText({ tabId: tab.id, text: 'URL' }); setTimeout(() => chrome.action.setBadgeText({ tabId: tab.id, text: '' }), 3000); return; }
     const map: Record<string, string> = { lens: `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(info.srcUrl)}`, bing: `https://www.bing.com/images/searchbyimage?cbir=sbi&imgurl=${encodeURIComponent(info.srcUrl)}`, yandex: `https://yandex.com/images/search?rpt=imageview&url=${encodeURIComponent(info.srcUrl)}` };
     chrome.tabs.create({ windowId: tab.windowId, url: map[info.menuItemId] });
   });
