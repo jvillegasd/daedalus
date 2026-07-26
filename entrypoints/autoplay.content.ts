@@ -6,17 +6,19 @@
 // Gating comes from a data attribute the isolated content script sets once it has read the
 // prefs, because chrome.storage isn't reachable from here. No attribute means no blocking,
 // so anything unexpected leaves playback exactly as the site intended.
+// ponytail: top frame only. The verdict attribute is set by content.ts, which does not run
+// in subframes, so a copy of this script in an iframe could never block anything — it just
+// paid for listeners. Blocking autoplay inside embeds means giving content.ts allFrames and
+// a prefs read per frame; do that if embedded players turn out to matter.
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_start',
-  allFrames: true,
-  matchAboutBlank: true,
   world: 'MAIN',
   main() {
     const nativePlay = HTMLMediaElement.prototype.play;
     const lastFake = new WeakMap<HTMLMediaElement, number>();
     let lastGesture = 0;
-    for (const type of ['pointerdown', 'keydown', 'touchend']) addEventListener(type, () => { lastGesture = Date.now(); }, true);
+    for (const type of ['pointerdown', 'keydown', 'touchend']) addEventListener(type, () => { lastGesture = Date.now(); }, { capture: true, passive: true });
 
     const blocking = () => document.documentElement?.dataset.daedalusAutoplay === 'block' && Date.now() - lastGesture > 1000;
 
@@ -34,12 +36,16 @@ export default defineContentScript({
       return Promise.resolve();
     };
 
-    // Declarative <video autoplay> never calls play(), so strip the attribute as it appears.
-    const strip = (node: Node) => {
-      if (node instanceof HTMLMediaElement) node.removeAttribute('autoplay');
-      else if (node instanceof Element) node.querySelectorAll('video[autoplay],audio[autoplay]').forEach(m => m.removeAttribute('autoplay'));
-    };
-    new MutationObserver(records => { if (blocking()) for (const r of records) r.addedNodes.forEach(strip); })
-      .observe(document, { childList: true, subtree: true });
+    // Declarative <video autoplay> never calls play(), so catch it from its own play event.
+    // The retry loop that rules this out for scripted playback does not apply here: nothing
+    // in the page asked for this one, so there is no caller to answer with a fake success.
+    // Watching the event beats a subtree MutationObserver, which charged every DOM insertion
+    // on the page a querySelectorAll to find media that almost never arrived.
+    addEventListener('play', e => {
+      const media = e.target as HTMLMediaElement;
+      if (!blocking() || !media.hasAttribute?.('autoplay')) return;
+      media.removeAttribute('autoplay');
+      if (!media.paused) media.pause();
+    }, true);
   },
 });

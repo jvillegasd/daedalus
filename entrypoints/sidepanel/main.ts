@@ -1,4 +1,4 @@
-import './style.css'; import { groups, removeGroup, setGroups, prefs, savePrefs } from '../../src/storage'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/domain'; import { uaProfiles } from '../../src/ua';
+import './style.css'; import { groups, setGroups, prefs, savePrefs } from '../../src/storage'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/domain'; import { uaProfiles } from '../../src/ua';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // Left rail (or top strip when narrow) swaps one section in for another, and the choice
@@ -22,7 +22,14 @@ let currentCookies: chrome.cookies.Cookie[] = [];
 // pages and fall back to the most recently used tab.
 async function tab() { const tabs = (await chrome.tabs.query({ currentWindow: true })).filter(t => t.url && !t.url.startsWith(location.origin)); return tabs.find(t => t.active) ?? tabs.sort((a, b) => ((b as { lastAccessed?: number }).lastAccessed ?? 0) - ((a as { lastAccessed?: number }).lastAccessed ?? 0))[0]; }
 const host = (t?: chrome.tabs.Tab) => { try { return new URL(t!.url!).hostname; } catch { return ''; } };
-const show = (caption: string, value: unknown) => { el('caption').textContent = caption; el('inspect').textContent = JSON.stringify(value, null, 2); };
+// Pretty-printing a few thousand cookies into one text node is megabytes of string and a
+// visible freeze, and nobody scrolls that far. Export still writes the full set.
+const shown = 200;
+const show = (caption: string, value: unknown) => {
+  const long = Array.isArray(value) && value.length > shown;
+  el('caption').textContent = long ? `${caption} — showing first ${shown}, export for all` : caption;
+  el('inspect').textContent = JSON.stringify(long ? (value as unknown[]).slice(0, shown) : value, null, 2);
+};
 const item = (t: SavedTab, i: number) => `<li data-i="${i}">
   <button class="link" data-act="open" title="${escape(t.url)}">${escape(t.title)}</button>
   <button class="btn icon" data-act="tab-up" aria-label="Move up">↑</button>
@@ -49,7 +56,12 @@ const card = (g: TabGroup) => `<article data-group="${g.id}">
   </div>
 </article>`;
 
-async function render() { const list = await groups(); el('groups').innerHTML = list.map(card).join('') || '<p class="hint">No saved lists yet.</p>'; }
+// Callers that just wrote a list pass it in: re-reading storage to draw what you already
+// have in hand means deserialising every saved list twice per click.
+// ponytail: still a full innerHTML rebuild. Patch a single <article> if lists get long
+// enough that reordering one tab feels slow.
+async function render(list?: TabGroup[]) { const all = list ?? await groups(); el('groups').innerHTML = all.map(card).join('') || '<p class="hint">No saved lists yet.</p>'; }
+const commit = async (list: TabGroup[]) => { await setGroups(list); render(list); };
 
 // Name and tags edit in place: the inputs look like text until hovered or focused, and
 // commit on blur/Enter, so there is no edit mode to enter or leave.
@@ -65,8 +77,7 @@ el('groups').onchange = async e => {
   const patch = input.dataset.act === 'rename'
     ? { name: input.value.trim() || 'Untitled list' }
     : { tags: [...group.tags, ...added] };
-  await setGroups(list.map(g => g.id === id ? { ...g, ...patch } : g));
-  render();
+  commit(list.map(g => g.id === id ? { ...g, ...patch } : g));
 };
 
 el('groups').onclick = async e => {
@@ -81,18 +92,16 @@ el('groups').onclick = async e => {
 
   switch (button.dataset.act) {
     case 'open': return void chrome.tabs.create({ url: g.tabs[i].url });
-    case 'open-all': for (const t of g.tabs) await chrome.tabs.create({ url: t.url, active: false }); return;
-    case 'add-current': { const t = await tab(); if (!t?.url) return; await setGroups(withTabs([...g.tabs, { url: t.url, title: t.title || t.url, favIconUrl: t.favIconUrl, pinned: t.pinned }])); break; }
-    case 'tag-remove': { const t = Number(button.dataset.tag); await setGroups(list.map((x, n) => n === gi ? { ...x, tags: x.tags.filter((_, k) => k !== t) } : x)); break; }
-    case 'tab-remove': await setGroups(withTabs(g.tabs.filter((_, n) => n !== i))); break;
-    case 'tab-up': await setGroups(withTabs(move(g.tabs, i, -1))); break;
-    case 'tab-down': await setGroups(withTabs(move(g.tabs, i, 1))); break;
-    case 'group-up': await setGroups(move(list, gi, -1)); break;
-    case 'group-down': await setGroups(move(list, gi, 1)); break;
-    case 'group-remove': if (!confirm(`Delete "${g.name}" and its ${g.tabs.length} tabs?`)) return; await removeGroup(g.id); break;
-    default: return;
+    case 'open-all': await Promise.all(g.tabs.map(t => chrome.tabs.create({ url: t.url, active: false }))); return;
+    case 'add-current': { const t = await tab(); if (!t?.url) return; return commit(withTabs([...g.tabs, { url: t.url, title: t.title || t.url, favIconUrl: t.favIconUrl, pinned: t.pinned }])); }
+    case 'tag-remove': { const t = Number(button.dataset.tag); return commit(list.map((x, n) => n === gi ? { ...x, tags: x.tags.filter((_, k) => k !== t) } : x)); }
+    case 'tab-remove': return commit(withTabs(g.tabs.filter((_, n) => n !== i)));
+    case 'tab-up': return commit(withTabs(move(g.tabs, i, -1)));
+    case 'tab-down': return commit(withTabs(move(g.tabs, i, 1)));
+    case 'group-up': return commit(move(list, gi, -1));
+    case 'group-down': return commit(move(list, gi, 1));
+    case 'group-remove': if (!confirm(`Delete "${g.name}" and its ${g.tabs.length} tabs?`)) return; return commit(list.filter(x => x.id !== g.id));
   }
-  render();
 };
 const escape = (s: string) => s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]!));
 const labels = { darkExcluded: 'Dark mode exceptions', autoplayAllowlist: 'Autoplay allowed', consentDomains: 'Auto-reject consent' } as const;
@@ -117,8 +126,13 @@ el('domains').onclick = async e => {
   await savePrefs({ [field]: p[field].filter(d => d !== button.dataset.domain) });
   syncTarget();
 };
-chrome.tabs.onActivated.addListener(() => syncTarget());
-chrome.tabs.onUpdated.addListener((_, change) => { if (change.url) syncTarget(); });
+// syncTarget reads prefs and rebuilds the domain chips, and tab events arrive in bursts —
+// several per navigation, from every window. Only the tab this panel acts on matters, and
+// only its settled state, so coalesce to one refresh per frame.
+let queued = 0;
+const refresh = () => { cancelAnimationFrame(queued); queued = requestAnimationFrame(() => syncTarget()); };
+chrome.tabs.onActivated.addListener(refresh);
+chrome.tabs.onUpdated.addListener((_, change, t) => { if (change.url && t.active) refresh(); });
 el('darkGlobal').onchange = () => savePrefs({ darkEnabled: el('darkGlobal').checked });
 (async () => { const p = await prefs(); el('darkGlobal').checked=p.darkEnabled; el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('exclude').value=p.excludedDomains.join(','); el('cleanerSave').checked=p.cleanerSave; el('cleanerList').value=p.cleanerListName; syncTarget(); render(); })();
 el('trace').onclick = async () => { const t = await tab(); show('Redirect chain', await chrome.runtime.sendMessage({ type:'redirects', tabId:t.id })); };
