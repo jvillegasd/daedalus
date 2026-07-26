@@ -14,6 +14,10 @@ header h1 { font-size: 15px; margin: 0; }
 
 main { overflow-y: auto; display: grid; align-content: start; gap: 12px; padding: 14px; }
 
+/* Grid and flex children default to min-width:auto, so one long tab title would push the
+   whole panel wider than the viewport and clip the controls on the right. */
+section, article, article li, article .title { min-width: 0; }
+
 section {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -30,11 +34,33 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: v
 /* group list */
 article { display: grid; gap: 6px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 article:last-child { border-bottom: 0; padding-bottom: 0; }
+article + article { border-top: 1px solid var(--border); padding-top: 10px; }
 article .title { display: flex; align-items: baseline; gap: 6px; }
-article .title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+article .title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 article .count { color: var(--muted); font-size: 12px; }
-article .actions { display: flex; gap: 6px; }
+article .title .spacer { flex: 1; }
+article .count { color: var(--muted); font-size: 12px; }
+article .actions { display: flex; flex-wrap: wrap; gap: 6px; }
 article .btn { padding: 4px 10px; font-size: 12px; }
+article .btn.icon { padding: 2px 6px; line-height: 1; }
+
+article ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+article li { display: flex; align-items: center; gap: 4px; }
+article li .link {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 3px 0;
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+article li .link:hover { color: var(--accent); text-decoration: underline; }
 
 #inspect {
   margin: 0;

@@ -1,8 +1,18 @@
 import { describe, expect, test } from 'bun:test';
-import { addRestore, cookieImport, eligibleForCleaning, luminance, reduceRedirect, scopedDomains } from '../src/domain';
+import { addRestore, cookieImport, eligibleForCleaning, luminance, move, reduceRedirect, scopedDomains } from '../src/domain';
 import { uaRule, uaRuleId } from '../src/ua';
 
 describe('Daedalus local rules', () => {
+  test('move reorders and refuses to run off either end', () => {
+    const list = ['a', 'b', 'c'];
+    expect(move(list, 0, 1)).toEqual(['b', 'a', 'c']);
+    expect(move(list, 2, -1)).toEqual(['a', 'c', 'b']);
+    expect(move(list, 0, -1)).toBe(list);   // already first
+    expect(move(list, 2, 1)).toBe(list);    // already last
+    expect(move(list, -1, 1)).toBe(list);   // no such item
+    expect(list).toEqual(['a', 'b', 'c']);  // never mutates
+  });
+
   test('luminance separates dark pages from light ones', () => {
     expect(luminance('rgb(255, 255, 255)')).toBeCloseTo(1);
     expect(luminance('rgb(0, 0, 0)')).toBe(0);

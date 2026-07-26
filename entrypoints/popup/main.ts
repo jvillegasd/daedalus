@@ -7,14 +7,16 @@ const status = (text: string, error = false) => { $('status').toggleAttribute('d
 let windowId: number | undefined;
 chrome.windows.getCurrent().then(w => { windowId = w.id; }, e => status(String(e), true));
 
-$('save').onclick = async () => {
+const save = (close: boolean) => async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const r = await chrome.runtime.sendMessage({ type: 'save-tabs', windowId: tab.windowId, name: $('name').value, tags: $('tags').value, selected: $('selected').checked, close: true });
+    const r = await chrome.runtime.sendMessage({ type: 'save-tabs', windowId: tab.windowId, name: $('name').value, tags: $('tags').value, selected: $('selected').checked, close });
     if (!r) throw new Error('No response from background worker.');
     r.error ? status(r.error, true) : status(`Saved ${r.tabs.length} tabs.`);
   } catch (e) { status(String(e), true); }
 };
+$('save').onclick = save(false);
+$('saveClose').onclick = save(true);
 
 // Chrome closes the popup itself once the panel opens; calling window.close() here
 // tears down the page mid-call and the panel never appears.
