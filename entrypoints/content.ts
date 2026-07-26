@@ -23,9 +23,17 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
       const s = document.createElement('style'); s.textContent = darkCss; document.documentElement.append(s);
       onReady(() => { s.remove(); if (pageLuminance() >= 0.4) document.documentElement.append(s); });
     }
-    // ponytail: userActivation tells autoplay apart from a real click well enough; if a site
-    // needs finer control, allowlist it rather than growing a heuristic here.
-    if (!has(prefs?.autoplayAllowlist)) addEventListener('play', e => { if (!navigator.userActivation?.hasBeenActive) (e.target as HTMLMediaElement).pause(); }, true);
+    // Playback you asked for starts within milliseconds of a click or keypress; playback a
+    // feed starts on its own does not. userActivation.hasBeenActive can't tell them apart on
+    // a single-page app — it latches true at your first click and never resets — so track
+    // when the last gesture happened instead. ponytail: 1s window, widen it if a site's
+    // player is slow enough to get caught.
+    if (!has(prefs?.autoplayAllowlist)) {
+      let lastGesture = 0;
+      const mark = () => { lastGesture = Date.now(); };
+      for (const type of ['pointerdown', 'keydown']) addEventListener(type, mark, true);
+      addEventListener('play', e => { if (Date.now() - lastGesture > 1000) (e.target as HTMLMediaElement).pause(); }, true);
+    }
     if (has(prefs?.consentDomains)) onReady(() => setTimeout(() => [...document.querySelectorAll('button,input[type=button]')].find((b: any) => /reject|decline|necessary only|essential only/i.test(b.textContent || b.value || ''))?.click(), 500));
   });
 } });
