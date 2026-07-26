@@ -1,5 +1,18 @@
 import './style.css'; import { groups, removeGroup, setGroups, prefs, savePrefs } from '../../src/storage'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/domain'; import { uaProfiles } from '../../src/ua';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
+
+// Left rail (or top strip when narrow) swaps one section in for another, and the choice
+// sticks so reopening the dashboard lands where you left off.
+const views = [...document.querySelectorAll<HTMLElement>('main section')];
+const navItems = [...document.querySelectorAll<HTMLElement>('.nav-item')];
+function showView(name: string) {
+  if (!navItems.some(n => n.dataset.view === name)) name = 'lists';
+  views.forEach(v => { v.hidden = v.id !== `view-${name}`; });
+  navItems.forEach(n => n.setAttribute('aria-current', String(n.dataset.view === name)));
+  localStorage.setItem('view', name);
+}
+navItems.forEach(n => { n.onclick = () => showView(n.dataset.view!); });
+showView(localStorage.getItem('view') ?? 'lists');
 // Each pair is a button plus the domain list it adds to or removes the current host from.
 // 'dark' is an exception list (pressed = skip this site); the other two are allowlists.
 const toggles = [['dark', 'darkExcluded'], ['autoplay', 'autoplayAllowlist'], ['consent', 'consentDomains']] as const;

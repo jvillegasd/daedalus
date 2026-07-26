@@ -8,5 +8,7 @@ export default defineConfig({
     permissions: ['tabs', 'storage', 'sidePanel', 'contextMenus', 'cookies', 'declarativeNetRequest', 'webRequest', 'alarms'],
     host_permissions: ['<all_urls>'],
     incognito: 'not_allowed',
+    // Same page, three ways in: side panel, "Extension options", and the popup's fallback tab.
+    options_ui: { page: 'sidepanel.html', open_in_tab: true },
   },
 });
