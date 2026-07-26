@@ -19,7 +19,7 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
     // Inverting a site that already ships a dark theme just turns it light, so once the page
     // has rendered, measure its real background (with our rule lifted) and only keep the
     // inversion on light pages. Remove/re-add happen in one task, so nothing flashes.
-    if (has(prefs?.darkDomains)) {
+    if (prefs?.darkEnabled && !has(prefs?.darkExcluded)) {
       const s = document.createElement('style'); s.textContent = darkCss; document.documentElement.append(s);
       onReady(() => { s.remove(); if (pageLuminance() >= 0.4) document.documentElement.append(s); });
     }
