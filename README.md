@@ -24,7 +24,7 @@ Daedalus helps you save browser work, remove stale tabs safely, and inspect what
 |---|---|
 | **Read later** | Save selected or window tabs as named, tagged groups and reopen them later. |
 | **Tab cleaner** | Close inactive tabs after a configurable delay, with a session restore list. |
-| **Page controls** | Enable dark mode, control autoplay, and reject non-essential consent where supported. |
+| **Page controls** | Dark mode across all sites with per-domain exceptions (already-dark pages are left alone), autoplay control, and consent rejection where supported. |
 | **Inspect** | Trace redirects and view cookies limited to domains open in the current window. |
 | **Image search** | Search an image URL with Google Lens, Bing, or Yandex—never upload image bytes. |
 | **UA headers** | Apply built-in, session-only user-agent headers to matching tabs in one window. |

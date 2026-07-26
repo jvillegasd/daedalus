@@ -1,6 +1,8 @@
 import './style.css'; import { groups, removeGroup, prefs, savePrefs } from '../../src/storage'; import { key, type RestoreTab } from '../../src/models'; import { uaProfiles } from '../../src/ua';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
-const toggles = [['dark', 'darkDomains'], ['autoplay', 'autoplayAllowlist'], ['consent', 'consentDomains']] as const;
+// Each pair is a button plus the domain list it adds to or removes the current host from.
+// 'dark' is an exception list (pressed = skip this site); the other two are allowlists.
+const toggles = [['dark', 'darkExcluded'], ['autoplay', 'autoplayAllowlist'], ['consent', 'consentDomains']] as const;
 let currentCookies: chrome.cookies.Cookie[] = [];
 // The manager runs as a real side panel in Chrome, but as an ordinary tab where the
 // sidePanel API is missing (Opera) — there the active tab is this page, so skip our own
@@ -13,7 +15,8 @@ const escape = (s: string) => s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;
 async function syncTarget() { const p = await prefs(); const domain = host(await tab()); el('target').textContent = domain ? `Acting on ${domain} — applies on next reload.` : 'No page tab found.'; for (const [id, field] of toggles) el(id).setAttribute('aria-pressed', String(p[field].includes(domain))); }
 chrome.tabs.onActivated.addListener(() => syncTarget());
 chrome.tabs.onUpdated.addListener((_, change) => { if (change.url) syncTarget(); });
-(async () => { const p = await prefs(); el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('exclude').value=p.excludedDomains.join(','); syncTarget(); render(); })();
+el('darkGlobal').onchange = () => savePrefs({ darkEnabled: el('darkGlobal').checked });
+(async () => { const p = await prefs(); el('darkGlobal').checked=p.darkEnabled; el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('exclude').value=p.excludedDomains.join(','); syncTarget(); render(); })();
 el('trace').onclick = async () => { const t = await tab(); show('Redirect chain', await chrome.runtime.sendMessage({ type:'redirects', tabId:t.id })); };
 for (const [id, field] of toggles) el(id).onclick = async () => { const t=await tab(); const enabled=await chrome.runtime.sendMessage({type:'toggle-pref', field, domain:host(t)}); el(id).setAttribute('aria-pressed', String(enabled)); };
 el('cookies').onclick = async () => { const t=await tab(); currentCookies = await chrome.runtime.sendMessage({ type:'cookies', windowId:t.windowId }); show(`Cookies in this window (${currentCookies.length})`, currentCookies); };
