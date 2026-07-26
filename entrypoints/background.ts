@@ -1,12 +1,15 @@
-import { addRestore, cookieImport, eligibleForCleaning, reduceRedirect, scopedDomains } from '../src/domain';
+import { addRestore, cookieImport, reduceRedirect, scopedDomains, tabsToClean } from '../src/domain';
 import { key, type RestoreTab, type SavedTab, type TabGroup } from '../src/models';
 import { prefs, saveGroup } from '../src/storage';
 import { uaRule, uaRuleId } from '../src/ua';
 
-const activity = new Map<number, number>();
-const unsaved = new Set<number>();
 const redirects = new Map<number, { url: string; statusCode?: number }[]>();
 const uaOverridesKey = 'uaOverrides';
+// Session storage, not a Set: the worker is evicted while idle, and losing this would let
+// the cleaner close a tab with unsaved form input in it.
+const unsavedKey = 'unsavedTabs';
+const unsavedTabs = async () => ((await chrome.storage.session.get(unsavedKey))[unsavedKey] ?? []) as number[];
+const setUnsaved = async (tabId: number, value: boolean) => { const ids = await unsavedTabs(); await chrome.storage.session.set({ [unsavedKey]: value ? [...new Set([...ids, tabId])] : ids.filter(id => id !== tabId) }); };
 type UaOverride = { windowId: number; domain: string; value: string };
 const tabData = (t: chrome.tabs.Tab): SavedTab => ({ url: t.url!, title: t.title || t.url!, favIconUrl: t.favIconUrl, pinned: t.pinned });
 
@@ -23,19 +26,15 @@ export default defineBackground(() => {
     const map: Record<string, string> = { lens: `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(info.srcUrl)}`, bing: `https://www.bing.com/images/searchbyimage?cbir=sbi&imgurl=${encodeURIComponent(info.srcUrl)}`, yandex: `https://yandex.com/images/search?rpt=imageview&url=${encodeURIComponent(info.srcUrl)}` };
     chrome.tabs.create({ windowId: tab.windowId, url: map[info.menuItemId] });
   });
-  chrome.tabs.onActivated.addListener(({ tabId }) => activity.set(tabId, Date.now()));
-  chrome.tabs.onCreated.addListener(tab => { if (tab.id) activity.set(tab.id, Date.now()); });
   chrome.tabs.onUpdated.addListener(async (tabId, _, tab) => { if (!tab.url || tab.windowId === undefined) return; const rules = ((await chrome.storage.session.get(uaOverridesKey))[uaOverridesKey] ?? []) as UaOverride[]; const rule = rules.find(r => r.windowId === tab.windowId && r.domain === new URL(tab.url!).hostname); if (rule) chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [uaRuleId(tabId)], addRules: [uaRule(tabId, rule.value)] }); });
-  chrome.tabs.onRemoved.addListener(tabId => { activity.delete(tabId); unsaved.delete(tabId); chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [uaRuleId(tabId)] }); });
+  chrome.tabs.onRemoved.addListener(tabId => { setUnsaved(tabId, false); chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [uaRuleId(tabId)] }); });
   chrome.webRequest.onBeforeRequest.addListener(d => { if (d.type === 'main_frame') redirects.set(d.tabId, reduceRedirect(redirects.get(d.tabId) ?? [], d.url)); }, { urls: ['<all_urls>'] });
   chrome.webRequest.onHeadersReceived.addListener(d => { if (d.type === 'main_frame') redirects.set(d.tabId, reduceRedirect(redirects.get(d.tabId) ?? [], d.url, d.statusCode)); }, { urls: ['<all_urls>'] }, ['responseHeaders']);
   chrome.alarms.create('clean-tabs', { periodInMinutes: 5 });
   chrome.alarms.onAlarm.addListener(async a => {
     if (a.name !== 'clean-tabs') return;
     const p = await prefs(); if (!p.cleanerEnabled) return;
-    const now = Date.now(), threshold = p.cleanerMinutes * 60_000;
-    const tabs = await chrome.tabs.query({});
-    const close = tabs.filter(t => eligibleForCleaning(t, p.excludedDomains) && !unsaved.has(t.id!) && now - (activity.get(t.id!) ?? now) >= threshold);
+    const close = tabsToClean(await chrome.tabs.query({}), p.excludedDomains, p.cleanerMinutes, await unsavedTabs(), Date.now());
     if (!close.length) return;
     const saved = close.map(tabData); const old = ((await chrome.storage.session.get(key.restore))[key.restore] ?? []) as RestoreTab[];
     await chrome.storage.session.set({ [key.restore]: addRestore(old, saved) });
@@ -43,7 +42,7 @@ export default defineBackground(() => {
   });
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => { (async () => {
     const windowId = message.windowId ?? sender.tab?.windowId;
-    if (message.type === 'unsaved') { message.value ? unsaved.add(sender.tab!.id!) : unsaved.delete(sender.tab!.id!); return; }
+    if (message.type === 'unsaved') { await setUnsaved(sender.tab!.id!, message.value); return; }
     if (message.type === 'save-tabs') { const tabs = await chrome.tabs.query({ windowId }); const kept = tabs.filter(t => t.url && !t.url.startsWith('chrome:')); const group: TabGroup = { id: crypto.randomUUID(), name: message.name || 'Read later', tags: (message.tags || '').split(',').map((x: string) => x.trim()).filter(Boolean), tabs: kept.map(tabData), createdAt: Date.now() }; await saveGroup(group); sendResponse(group); if (message.close && kept.length) await chrome.tabs.remove(kept.map(t => t.id!)); }
     if (message.type === 'restore') { const old = ((await chrome.storage.session.get(key.restore))[key.restore] ?? []) as RestoreTab[]; await chrome.tabs.create({ windowId, url: message.tab.url, active: false }); await chrome.storage.session.set({ [key.restore]: old.filter(t => !(t.url === message.tab.url && t.closedAt === message.tab.closedAt)) }); }
     if (message.type === 'redirects') sendResponse(redirects.get(message.tabId) ?? []);

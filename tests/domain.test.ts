@@ -1,8 +1,26 @@
 import { describe, expect, test } from 'bun:test';
-import { addRestore, cookieImport, eligibleForCleaning, luminance, move, reduceRedirect, scopedDomains } from '../src/domain';
+import { addRestore, cookieImport, eligibleForCleaning, luminance, move, tabsToClean, reduceRedirect, scopedDomains } from '../src/domain';
 import { uaRule, uaRuleId } from '../src/ua';
 
 describe('Daedalus local rules', () => {
+  test('cleaner closes stale tabs and spares protected ones', () => {
+    const now = Date.parse('2026-07-26T12:00:00Z');
+    const ago = (minutes: number) => now - minutes * 60_000;
+    const tab = (id: number, over: Partial<chrome.tabs.Tab> & { lastAccessed?: number }) =>
+      ({ id, url: `https://site${id}.com/`, active: false, pinned: false, audible: false, discarded: false, ...over }) as chrome.tabs.Tab;
+
+    const tabs = [
+      tab(1, { lastAccessed: ago(90) }),                    // stale
+      tab(2, { lastAccessed: ago(10) }),                    // recent
+      tab(3, { lastAccessed: ago(90), pinned: true }),      // pinned
+      tab(4, { lastAccessed: ago(90) }),                    // has unsaved input
+      tab(5, { lastAccessed: ago(90), url: 'https://keep.com/' }), // excluded domain
+      tab(6, {}),                                           // no lastAccessed: treat as fresh
+    ];
+    const ids = tabsToClean(tabs, ['keep.com'], 60, [4], now).map(t => t.id);
+    expect(ids).toEqual([1]);
+  });
+
   test('move reorders and refuses to run off either end', () => {
     const list = ['a', 'b', 'c'];
     expect(move(list, 0, 1)).toEqual(['b', 'a', 'c']);
