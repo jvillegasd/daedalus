@@ -1,6 +1,6 @@
-import { addRestore, cookieImport, reduceRedirect, scopedDomains, tabsToClean } from '../src/domain';
+import { addRestore, appendToList, cookieImport, reduceRedirect, scopedDomains, tabsToClean } from '../src/domain';
 import { key, type RestoreTab, type SavedTab, type TabGroup } from '../src/models';
-import { prefs, saveGroup } from '../src/storage';
+import { groups, prefs, saveGroup, setGroups } from '../src/storage';
 import { uaRule, uaRuleId } from '../src/ua';
 
 const redirects = new Map<number, { url: string; statusCode?: number }[]>();
@@ -38,6 +38,9 @@ export default defineBackground(() => {
     if (!close.length) return;
     const saved = close.map(tabData); const old = ((await chrome.storage.session.get(key.restore))[key.restore] ?? []) as RestoreTab[];
     await chrome.storage.session.set({ [key.restore]: addRestore(old, saved) });
+    // Restore-last-closed lives in session storage and dies with the browser; saving to a
+    // list is the durable option, so do it before the tabs go.
+    if (p.cleanerSave) await setGroups(appendToList(await groups(), p.cleanerListName || 'Auto-saved', saved, crypto.randomUUID(), Date.now()));
     await chrome.tabs.remove(close.map(t => t.id!));
   });
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => { (async () => {

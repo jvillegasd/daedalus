@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { addRestore, cookieImport, eligibleForCleaning, luminance, move, tabsToClean, reduceRedirect, scopedDomains } from '../src/domain';
+import { addRestore, appendToList, cookieImport, eligibleForCleaning, luminance, move, tabsToClean, reduceRedirect, scopedDomains } from '../src/domain';
 import { uaRule, uaRuleId } from '../src/ua';
 
 describe('Daedalus local rules', () => {
@@ -19,6 +19,20 @@ describe('Daedalus local rules', () => {
     ];
     const ids = tabsToClean(tabs, ['keep.com'], 60, [4], now).map(t => t.id);
     expect(ids).toEqual([1]);
+  });
+
+  test('cleaner list is created once, then appended to without duplicates', () => {
+    const tab = (url: string) => ({ url, title: url });
+    const first = appendToList([], 'Auto-saved', [tab('https://a.com')], 'id-1', 1);
+    expect(first).toHaveLength(1);
+    expect(first[0]).toMatchObject({ id: 'id-1', name: 'Auto-saved', tags: [] });
+
+    const second = appendToList(first, 'Auto-saved', [tab('https://a.com'), tab('https://b.com')], 'id-2', 2);
+    expect(second).toHaveLength(1);                                   // reused, not recreated
+    expect(second[0].tabs.map(t => t.url)).toEqual(['https://a.com', 'https://b.com']);
+
+    const other = appendToList(second, 'Reading', [tab('https://c.com')], 'id-3', 3);
+    expect(other.map(g => g.name)).toEqual(['Reading', 'Auto-saved']);  // new list goes on top
   });
 
   test('move reorders and refuses to run off either end', () => {

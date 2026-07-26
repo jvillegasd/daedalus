@@ -1,4 +1,4 @@
-import type { RestoreTab, SavedTab } from './models';
+import type { RestoreTab, SavedTab, TabGroup } from './models';
 
 export const domainOf = (url: string) => { try { return new URL(url).hostname; } catch { return ''; } };
 export const matchesDomain = (url: string, domains: string[]) => { const host = domainOf(url); return domains.some(d => host === d || host.endsWith(`.${d}`)); };
@@ -18,6 +18,17 @@ export const tabsToClean = (tabs: chrome.tabs.Tab[], excluded: string[], minutes
   tabs.filter(t => eligibleForCleaning(t, excluded)
     && !unsaved.includes(t.id!)
     && now - ((t as { lastAccessed?: number }).lastAccessed ?? now) >= minutes * 60_000);
+/**
+ * Append tabs to the list called `name`, creating it at the top if it doesn't exist yet.
+ * Tabs already in the list by URL are skipped, so a page that keeps going stale doesn't
+ * pile up duplicates.
+ */
+export const appendToList = (all: TabGroup[], name: string, tabs: SavedTab[], id: string, now: number): TabGroup[] => {
+  const target = all.find(g => g.name === name);
+  if (!target) return [{ id, name, tags: [], tabs, createdAt: now }, ...all];
+  const fresh = tabs.filter(t => !target.tabs.some(x => x.url === t.url));
+  return all.map(g => g === target ? { ...g, tabs: [...g.tabs, ...fresh] } : g);
+};
 export const addRestore = (history: RestoreTab[], tabs: SavedTab[]) => [...tabs.map(t => ({ ...t, closedAt: Date.now() })), ...history].slice(0, 100);
 export const reduceRedirect = (chain: { url: string; statusCode?: number }[], url: string, statusCode?: number) =>
   chain.at(-1)?.url === url ? [...chain.slice(0, -1), { url, statusCode: statusCode ?? chain.at(-1)?.statusCode }] : [...chain, { url, statusCode }];
