@@ -2,6 +2,8 @@ import type { RestoreTab, SavedTab } from './models';
 
 export const domainOf = (url: string) => { try { return new URL(url).hostname; } catch { return ''; } };
 export const matchesDomain = (url: string, domains: string[]) => { const host = domainOf(url); return domains.some(d => host === d || host.endsWith(`.${d}`)); };
+/** Relative luminance 0..1 of a computed CSS color, or null if it is transparent/unparseable. */
+export const luminance = (color: string) => { const [r, g, b, a] = (color.match(/[\d.]+/g) ?? []).map(Number); if (r === undefined || g === undefined || b === undefined || a === 0) return null; return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; };
 export const eligibleForCleaning = (tab: chrome.tabs.Tab, excluded: string[]) =>
   !!tab.id && !tab.active && !tab.pinned && !tab.audible && !tab.discarded && !!tab.url && !matchesDomain(tab.url, excluded) && !tab.url.startsWith('chrome:');
 export const addRestore = (history: RestoreTab[], tabs: SavedTab[]) => [...tabs.map(t => ({ ...t, closedAt: Date.now() })), ...history].slice(0, 100);
