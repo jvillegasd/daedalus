@@ -32,7 +32,20 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
       let lastGesture = 0;
       const mark = () => { lastGesture = Date.now(); };
       for (const type of ['pointerdown', 'keydown']) addEventListener(type, mark, true);
-      addEventListener('play', e => { if (Date.now() - lastGesture > 1000) (e.target as HTMLMediaElement).pause(); }, true);
+      // Feed players call play() straight back after a pause. Pausing unconditionally turns
+      // that into an unbounded play/pause loop that pegs the main thread, so give up on an
+      // element after a few rounds: a video that plays anyway beats a frozen tab. A gesture
+      // clears the count, so pressing play always works.
+      const attempts = new WeakMap<HTMLMediaElement, number>();
+      addEventListener('play', e => {
+        const media = e.target as HTMLMediaElement;
+        if (Date.now() - lastGesture <= 1000) { attempts.delete(media); return; }
+        const n = (attempts.get(media) ?? 0) + 1;
+        attempts.set(media, n);
+        if (n > 3) { media.muted = true; return; }  // conceding: silent beats a frozen tab
+        media.autoplay = false;
+        media.pause();
+      }, true);
     }
     if (has(prefs?.consentDomains)) onReady(() => setTimeout(() => [...document.querySelectorAll('button,input[type=button]')].find((b: any) => /reject|decline|necessary only|essential only/i.test(b.textContent || b.value || ''))?.click(), 500));
   });
