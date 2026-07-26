@@ -10,7 +10,7 @@ chrome.windows.getCurrent().then(w => { windowId = w.id; }, e => status(String(e
 const save = (close: boolean) => async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const r = await chrome.runtime.sendMessage({ type: 'save-tabs', windowId: tab.windowId, name: $('name').value, tags: $('tags').value, selected: $('selected').checked, close });
+    const r = await chrome.runtime.sendMessage({ type: 'save-tabs', windowId: tab.windowId, name: $('name').value, tags: $('tags').value, close });
     if (!r) throw new Error('No response from background worker.');
     r.error ? status(r.error, true) : status(`Saved ${r.tabs.length} tabs.`);
   } catch (e) { status(String(e), true); }
