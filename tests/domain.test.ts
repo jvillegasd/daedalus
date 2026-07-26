@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { addRestore, appendToList, cookieImport, eligibleForCleaning, luminance, move, tabsToClean, reduceRedirect, scopedDomains } from '../src/domain';
+import { addRestore, appendToList, cookieImport, eligibleForCleaning, luminance, move, tabsToClean, reduceRedirect, scopedUrls } from '../src/domain';
 import { uaRule, uaRuleId } from '../src/ua';
 
 describe('Daedalus local rules', () => {
@@ -64,7 +64,7 @@ describe('Daedalus local rules', () => {
     expect(eligibleForCleaning({ ...base, url: 'chrome://settings' }, [])).toBe(false);
   });
   test('restore history is newest-first and bounded', () => { const history = addRestore([], [{ url:'https://a', title:'a' }]); expect(history[0].url).toBe('https://a'); expect(history[0].closedAt).toBeNumber(); expect(addRestore(Array(100).fill(history[0]), [history[0]]).length).toBe(100); });
-  test('domains scope cookies to tabs in one window', () => expect(scopedDomains([{ url:'https://a.example.com' }, {url:'https://example.com/x'}] as chrome.tabs.Tab[])).toEqual(['a.example.com','example.com']));
+  test('cookie scope is the distinct http(s) urls open in the window', () => expect(scopedUrls([{ url:'https://a.example.com' }, { url:'https://a.example.com' }, { url:'https://example.com/x' }, { url:'chrome://settings' }] as chrome.tabs.Tab[])).toEqual(['https://a.example.com','https://example.com/x']));
   test('cookie JSON requires required fields', () => { expect(() => cookieImport('{}')).toThrow(); expect(() => cookieImport('[{"name":"n","value":"v","domain":"example.com"}]')).not.toThrow(); });
   test('redirect reducer removes duplicate terminal entries', () => { const chain=reduceRedirect([], 'https://a', 301); expect(reduceRedirect(chain, 'https://a', 200)).toEqual([{ url: 'https://a', statusCode: 200 }]); });
   test('UA rules are tab-scoped and removable by stable id', () => { const r=uaRule(42,'UA'); expect(r.condition.tabIds).toEqual([42]); expect(r.id).toBe(uaRuleId(42)); });

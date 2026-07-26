@@ -10,7 +10,9 @@ const onReady = (fn: () => void) => document.readyState === 'loading' ? addEvent
 
 export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_start', main() {
   let dirty = false;
-  addEventListener('input', e => { if ((e.target as Element).matches('input,textarea,[contenteditable]') && !dirty) { dirty = true; chrome.runtime.sendMessage({ type: 'unsaved', value: true }); } }, true);
+  // `dirty` first: once the flag is set this still fires on every keystroke for the life of
+  // the page, and the selector match is the expensive half.
+  addEventListener('input', e => { if (!dirty && (e.target as Element).matches('input,textarea,[contenteditable]')) { dirty = true; chrome.runtime.sendMessage({ type: 'unsaved', value: true }); } }, true);
   addEventListener('submit', () => { dirty = false; chrome.runtime.sendMessage({ type: 'unsaved', value: false }); }, true);
   chrome.storage.sync.get('prefs').then(({ prefs }) => {
     const has = (list: string[] = []) => matchesDomain(location.href, list);
@@ -18,10 +20,11 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
     // and site scripts can't clobber it the way they clobber documentElement.style.
     // Inverting a site that already ships a dark theme just turns it light, so once the page
     // has rendered, measure its real background (with our rule lifted) and only keep the
-    // inversion on light pages. Remove/re-add happen in one task, so nothing flashes.
+    // inversion on light pages. Toggling `disabled` rather than detaching the element keeps
+    // the CSS parsed and both flips in one task, so nothing flashes and nothing re-parses.
     if (prefs?.darkEnabled && !has(prefs?.darkExcluded)) {
       const s = document.createElement('style'); s.textContent = darkCss; document.documentElement.append(s);
-      onReady(() => { s.remove(); if (pageLuminance() >= 0.4) document.documentElement.append(s); });
+      onReady(() => { s.disabled = true; s.disabled = pageLuminance() < 0.4; });
     }
     // The blocking itself happens in autoplay.content.ts, which runs in the page's world and
     // can patch HTMLMediaElement. It can't read prefs from there, so hand it the verdict.

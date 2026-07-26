@@ -41,4 +41,5 @@ export const cookieImport = (json: string): chrome.cookies.CookieDetails[] => {
     return { name: c.name as string, value: c.value as string, domain: c.domain as string, path: typeof c.path === 'string' ? c.path : '/', secure: !!c.secure, httpOnly: !!c.httpOnly, sameSite: c.sameSite as chrome.cookies.SameSiteStatus | undefined, expirationDate: typeof c.expirationDate === 'number' ? c.expirationDate : undefined };
   });
 };
-export const scopedDomains = (tabs: chrome.tabs.Tab[]) => [...new Set(tabs.map(t => t.url && domainOf(t.url)).filter(Boolean))] as string[];
+/** Distinct http(s) URLs open in a window — the scope a cookie query gets narrowed to. */
+export const scopedUrls = (tabs: chrome.tabs.Tab[]) => [...new Set(tabs.map(t => t.url).filter(u => u && /^https?:/i.test(u)))] as string[];
