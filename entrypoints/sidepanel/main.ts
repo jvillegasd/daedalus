@@ -18,12 +18,13 @@ const item = (t: SavedTab, i: number) => `<li data-i="${i}">
 </li>`;
 
 const card = (g: TabGroup) => `<article data-group="${g.id}">
-  <div class="title"><b>${escape(g.name)}</b><span class="count">${g.tabs.length}</span>
-    <span class="spacer"></span>
+  <div class="title">
+    <input class="name" data-act="rename" value="${escape(g.name)}" aria-label="List name" />
+    <span class="count">${g.tabs.length}</span>
     <button class="btn icon" data-act="group-up" aria-label="Move list up">↑</button>
     <button class="btn icon" data-act="group-down" aria-label="Move list down">↓</button>
   </div>
-  ${g.tags.length ? `<div>${g.tags.map(t => `<span class="chip">${escape(t)}</span>`).join(' ')}</div>` : ''}
+  <input class="tags" data-act="retag" value="${escape(g.tags.join(', '))}" placeholder="tags, comma-separated" aria-label="List tags" />
   <ul>${g.tabs.map(item).join('') || '<li class="hint">Empty list.</li>'}</ul>
   <div class="actions">
     <button class="btn" data-act="open-all">Open all</button>
@@ -33,6 +34,20 @@ const card = (g: TabGroup) => `<article data-group="${g.id}">
 </article>`;
 
 async function render() { const list = await groups(); el('groups').innerHTML = list.map(card).join('') || '<p class="hint">No saved lists yet.</p>'; }
+
+// Name and tags edit in place: the inputs look like text until hovered or focused, and
+// commit on blur/Enter, so there is no edit mode to enter or leave.
+el('groups').onchange = async e => {
+  const input = (e.target as HTMLElement).closest('input[data-act]') as HTMLInputElement | null;
+  if (!input) return;
+  const id = (input.closest('article') as HTMLElement).dataset.group;
+  const list = await groups();
+  const patch = input.dataset.act === 'rename'
+    ? { name: input.value.trim() || 'Untitled list' }
+    : { tags: input.value.split(',').map(t => t.trim()).filter(Boolean) };
+  await setGroups(list.map(g => g.id === id ? { ...g, ...patch } : g));
+  render();
+};
 
 el('groups').onclick = async e => {
   const button = (e.target as HTMLElement).closest('button[data-act]') as HTMLElement | null;
