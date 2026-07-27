@@ -1,7 +1,7 @@
 import { defaults, key, type Preferences } from './models';
 
-/** The three preferences that are a list of domains: two allowlists and one exception list. */
-export type DomainField = 'darkExcluded' | 'autoplayAllowlist' | 'consentDomains';
+/** The preferences that are a list of domains: allowlists, exception lists, and one blocklist. */
+export type DomainField = 'darkExcluded' | 'autoplayAllowlist' | 'consentDomains' | 'jsBlocked';
 
 /**
  * The only door to `chrome.storage.sync`. Reading anywhere else means reading a profile that

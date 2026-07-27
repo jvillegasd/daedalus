@@ -1,5 +1,5 @@
 import { tabData } from './cleaner';
-import { cookieImport, scopedUrls } from './cookies';
+import { cookieImport, cookieUrl, scopedUrls } from './cookies';
 import { domainOf } from './urls';
 import { key, type RestoreTab, type TabGroup } from './models';
 import type { Handlers } from './protocol';
@@ -63,8 +63,13 @@ export const handlers: Handlers = {
   },
 
   'import-cookies': async p => {
-    for (const c of cookieImport(p.json)) await chrome.cookies.set({ ...c, url: `${c.secure ? 'https' : 'http'}://${c.domain.replace(/^\./, '')}${c.path || '/'}` });
+    for (const c of cookieImport(p.json)) await chrome.cookies.set({ ...c, url: cookieUrl(c) });
   },
+
+  // Editing one cookie is a set over the same name/domain/path, which is why the panel sends
+  // the whole record back rather than a patch: chrome.cookies.set replaces, it does not merge.
+  'set-cookie': async p => { await chrome.cookies.set(p.cookie); },
+  'delete-cookie': async p => { await chrome.cookies.remove({ url: p.url, name: p.name }); },
 
   'toggle-pref': async p => toggleDomain(p.field, p.domain),
 
