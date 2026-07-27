@@ -1,18 +1,23 @@
 import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { cookieUrl } from '../../src/cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
-// Left rail (or top strip when narrow) swaps one section in for another, and the choice
-// sticks so reopening the dashboard lands where you left off.
+// One section per feature. Wide shows the rail beside the section; narrow shows one or the
+// other — `drilled` is that choice, and CSS decides whether it means anything at this width.
+// Both stick, so reopening the dashboard lands where you left off.
 const views = [...document.querySelectorAll<HTMLElement>('main section')];
 const navItems = [...document.querySelectorAll<HTMLElement>('.nav-item')];
-function showView(name: string) {
+function showView(name: string, drilled = true) {
   if (!navItems.some(n => n.dataset.view === name)) name = 'lists';
   views.forEach(v => { v.hidden = v.id !== `view-${name}`; });
   navItems.forEach(n => n.setAttribute('aria-current', String(n.dataset.view === name)));
+  document.body.toggleAttribute('data-drilled', drilled);
+  el('back').hidden = !drilled;
   localStorage.setItem('view', name);
+  localStorage.setItem('drilled', String(drilled));
 }
 navItems.forEach(n => { n.onclick = () => showView(n.dataset.view!); });
-showView(localStorage.getItem('view') ?? 'lists');
+el('back').onclick = () => showView(localStorage.getItem('view') ?? 'lists', false);
+showView(localStorage.getItem('view') ?? 'lists', localStorage.getItem('drilled') !== 'false');
 // Each pair is a button plus the domain list it adds to or removes the current host from.
 // 'dark' is an exception list (pressed = skip this site); the other two are allowlists.
 const toggles = [['dark', 'darkExcluded'], ['autoplay', 'autoplayAllowlist'], ['consent', 'consentDomains'], ['js', 'jsBlocked']] as const;
@@ -103,21 +108,25 @@ el('groups').onclick = async e => {
     case 'group-remove': if (!confirm(`Delete "${g.name}" and its ${g.tabs.length} tabs?`)) return; return commit(list.filter(x => x.id !== g.id));
   }
 };
-const labels = { darkExcluded: 'Dark mode exceptions', autoplayAllowlist: 'Autoplay allowed', consentDomains: 'Auto-reject consent', jsBlocked: 'JavaScript blocked' } as const;
+// Each feature page carries the container for its own list, so the four lists no longer
+// stack into one column where "github.com" under Dark mode reads the same as under JS.
+const domainLists = [...document.querySelectorAll<HTMLElement>('.domains')];
 
 async function syncTarget() {
   const p = await read();
   const domain = host(await tab());
-  el('target').textContent = domain ? `Acting on ${domain} — applies on next reload.` : 'No page tab found.';
+  for (const span of document.querySelectorAll<HTMLElement>('[data-host]')) span.textContent = domain || 'no page tab found';
   for (const [id, field] of toggles) el(id).setAttribute('aria-pressed', String(p[field].includes(domain)));
-  // The toggles only ever show the current tab, so list every domain each one holds.
-  el('domains').innerHTML = toggles.map(([, field]) => `<div class="field">
-    <span>${labels[field]}</span>
-    <div class="tags">${p[field].map(d => `<span class="chip">${escape(d)}<button class="chip-x" data-field="${field}" data-domain="${escape(d)}" aria-label="Remove ${escape(d)}">×</button></span>`).join('') || '<span class="hint">None.</span>'}</div>
-  </div>`).join('');
+  // The buttons only ever act on the current tab, so each page also lists what its own
+  // field already holds — otherwise a rule set on another site is invisible.
+  for (const box of domainLists) {
+    const field = box.dataset.field as DomainField;
+    box.innerHTML = `<span>${escape(box.dataset.label!)} (${p[field].length})</span>
+      <div class="tags">${p[field].map(d => `<span class="chip">${escape(d)}<button class="chip-x" data-field="${field}" data-domain="${escape(d)}" aria-label="Remove ${escape(d)}">×</button></span>`).join('') || '<span class="hint">None.</span>'}</div>`;
+  }
 }
 
-el('domains').onclick = async e => {
+for (const box of domainLists) box.onclick = async e => {
   const button = (e.target as HTMLElement).closest('button[data-field]') as HTMLElement | null;
   if (!button) return;
   // The chip only exists for a domain already in the list, so toggling it is the removal.
@@ -150,7 +159,6 @@ for (const [id, field] of toggles) el(id).onclick = async () => {
   syncTarget();
 };
 const loadCookies = async () => { const t=await tab(); currentCookies = await send('cookies', { windowId: t.windowId }); renderCookies(); return currentCookies; };
-el('cookies').onclick = async () => { await loadCookies(); show(`Cookies in this window (${currentCookies.length})`, currentCookies); };
 el('loadCookies').onclick = () => void loadCookies();
 el('ua').onchange = async () => { const t=await tab(), name=el('ua').value as keyof typeof uaProfiles; if(name) await send('ua', { windowId: t.windowId, domain: host(t), value: uaProfiles[name] }); };
 el('prefs').onclick = async () => { await write({ cleanerEnabled:el('cleaner').checked, cleanerMinutes:Number(el('minutes').value)||60, cleanerSave:el('cleanerSave').checked, cleanerListName:el('cleanerList').value.trim()||'Auto-saved', excludedDomains:el('exclude').value.split(',').map(x=>x.trim()).filter(Boolean) }); el('saved').textContent='Saved.'; setTimeout(()=>{ el('saved').textContent=''; }, 2000); };

@@ -22,6 +22,20 @@ header {
   border-bottom: 1px solid var(--border);
 }
 header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+#back {
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 6px;
+  margin-left: -6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+#back:hover { background: var(--surface-2); color: var(--text-primary); }
+#back[hidden] { display: none; }
 
 nav {
   grid-area: nav;
@@ -53,17 +67,43 @@ nav {
 .nav-item:hover { background: var(--surface-2); color: var(--text-primary); }
 .nav-item[aria-current='true'] { background: var(--accent-subtle); color: var(--accent); }
 .nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.nav-group {
+  padding: var(--space-3) 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.nav-group:first-child { padding-top: 4px; }
 
 main { grid-area: main; overflow-y: auto; padding: var(--space-4); }
 section { display: grid; align-content: start; gap: var(--space-3); max-width: 780px; min-width: 0; }
 section[hidden] { display: none; }  /* display:grid above would otherwise beat the UA [hidden] rule */
 h2 { font-size: 14px; font-weight: 600; margin-bottom: var(--space-1); }
+/* A button that is its own grid item would otherwise stretch the whole 780px column. Ones
+   inside .row are already sized by the flex container and are left alone. */
+section > .btn { justify-self: start; }
 
+/* The rail is only visible where there is room for it; narrow drills instead, below. */
+#back { display: none; }
+
+/* Side-panel width. Twelve features in a horizontal scroller was unusable, so narrow drills:
+   the nav IS the screen until you pick a feature, then that feature gets the full width —
+   which is the point of giving each one room for its own options. Both live in the same grid
+   area and exactly one is shown, so there is no second layout to keep in sync. */
 @media (max-width: 620px) {
-  /* three areas now, so the track list needs three rows or the nav claims the flexible one */
-  body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'head' 'nav' 'main'; }
-  nav { flex-direction: row; align-items: center; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); }
-  .nav-item { width: auto; padding: 7px 12px; }
+  body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'head' 'main'; }
+  nav { grid-area: main; border-right: 0; padding: var(--space-2) var(--space-2) var(--space-4); }
+  .nav-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px; }
+  .nav-item::after { content: '›'; color: var(--text-tertiary); font-size: 15px; }
+  /* The menu is a list of destinations, not a current location — the rail's selected state
+     would mark a row you are not looking at. */
+  .nav-item[aria-current='true'] { background: transparent; color: var(--text-secondary); }
+  body[data-drilled] nav { display: none; }
+  body:not([data-drilled]) main { display: none; }
+  #back { display: block; }
+  #back[hidden] { display: none; }
   main { padding: var(--space-3); }
 }
 
@@ -111,7 +151,13 @@ article .name {
 article .name:hover { border-color: var(--border-hover); }
 article .name:focus { border-color: var(--accent); background: var(--surface-2); outline: none; }
 
-#domains { display: grid; gap: var(--space-3); }
+/* The current host, shown on every page that acts per-site — the thing the button below
+   applies to. It used to be one shared sentence for all four features at once. */
+.site-row { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; }
+.site-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.site-host { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--text-secondary); }
+.domains { display: grid; gap: 6px; }
+.domains > span { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 article ul { list-style: none; display: grid; gap: 2px; }
 article li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 article li .link {

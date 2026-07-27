@@ -1,16 +1,34 @@
 <!doctype html>
 <html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
   <body>
     <header>
+      <!-- Narrow only: the nav is the screen until a feature is picked, so getting back to it
+           needs a control. Wide keeps the rail visible and this stays hidden. -->
+      <button id="back" class="header-btn" type="button" aria-label="Back to menu" hidden>‹</button>
       <img src="/icons/icon-32.png" alt="" width="20" height="20" />
       <h1>Daedalus</h1>
     </header>
 
     <nav id="nav" aria-label="Sections">
+      <p class="nav-group" id="nav-group-tabs">Tabs</p>
       <button class="nav-item" data-view="lists" type="button">Read later</button>
-      <button class="nav-item" data-view="page" type="button">Page controls</button>
-      <button class="nav-item" data-view="inspector" type="button">Inspector</button>
       <button class="nav-item" data-view="cleaner" type="button">Tab cleaner</button>
+
+      <p class="nav-group">Page</p>
+      <button class="nav-item" data-view="dark" type="button">Dark mode</button>
+      <button class="nav-item" data-view="autoplay" type="button">Autoplay</button>
+      <button class="nav-item" data-view="js" type="button">JavaScript</button>
+      <button class="nav-item" data-view="consent" type="button">Cookie banners</button>
+      <button class="nav-item" data-view="youtube" type="button">YouTube</button>
+      <button class="nav-item" data-view="json" type="button">JSON</button>
+      <button class="nav-item" data-view="pip" type="button">Picture-in-Picture</button>
+      <button class="nav-item" data-view="ua" type="button">User agent</button>
+
+      <p class="nav-group">Inspect</p>
+      <button class="nav-item" data-view="redirects" type="button">Redirects</button>
       <button class="nav-item" data-view="cookies" type="button">Cookies</button>
     </nav>
 
@@ -18,42 +36,6 @@
       <section id="view-lists">
         <h2>Read later</h2>
         <div id="groups"></div>
-      </section>
-
-      <section id="view-page" hidden>
-        <h2>Page controls</h2>
-        <label class="field-row"><input id="darkGlobal" type="checkbox" /> Dark mode on all sites</label>
-        <label class="field-row"><input id="consentGlobal" type="checkbox" /> Reject cookie banners everywhere</label>
-        <label class="field-row"><input id="unhook" type="checkbox" /> Unhook YouTube (feed, suggestions, Shorts)</label>
-        <label class="field-row"><input id="jsonFormat" type="checkbox" /> Format JSON responses</label>
-        <div class="toggles">
-          <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
-          <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay</button>
-          <button id="consent" class="btn" type="button" aria-pressed="false">Reject consent</button>
-          <button id="js" class="btn" type="button" aria-pressed="false">Block JavaScript here</button>
-        </div>
-        <p id="target" class="hint">Per-domain, applied on next reload.</p>
-        <p class="hint">Picture-in-Picture: press Alt+P, or right-click a page and choose it.</p>
-        <div id="domains"></div>
-        <label class="field">
-          <span>User-agent override</span>
-          <select id="ua">
-            <option value="">None</option>
-            <option>Chrome Android</option>
-            <option>Firefox Linux</option>
-          </select>
-        </label>
-        <p class="hint">Request headers only, for this window, until Chrome restarts.</p>
-      </section>
-
-      <section id="view-inspector" hidden>
-        <h2>Inspector</h2>
-        <div class="row">
-          <button id="trace" class="btn" type="button">Redirect trace</button>
-          <button id="cookies" class="btn" type="button">Cookies in window</button>
-        </div>
-        <p id="caption" class="hint">Nothing inspected yet.</p>
-        <pre id="inspect"></pre>
       </section>
 
       <section id="view-cleaner" hidden>
@@ -71,6 +53,83 @@
         <p id="saved" role="status" class="hint"></p>
       </section>
 
+      <!-- The four page features below share a shape — master switch, this-site row, that
+           feature's own exception list — but not a polarity, so the verbs differ per page. -->
+      <section id="view-dark" hidden>
+        <h2>Dark mode</h2>
+        <label class="field-row"><input id="darkGlobal" type="checkbox" /> Dark mode on all sites</label>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
+        <p class="hint">Applies on next reload. A site that already ships a dark theme is detected and left alone.</p>
+        <div class="domains" data-field="darkExcluded" data-label="Skipped on"></div>
+      </section>
+
+      <section id="view-autoplay" hidden>
+        <h2>Autoplay</h2>
+        <p class="hint">Autoplay is blocked on every site except the ones listed below.</p>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay</button>
+        <p class="hint">Applies on next reload. Playback you start yourself always works.</p>
+        <div class="domains" data-field="autoplayAllowlist" data-label="Allowed on"></div>
+      </section>
+
+      <section id="view-js" hidden>
+        <h2>JavaScript</h2>
+        <p class="hint">Per-site only — there is no "block everywhere", by design.</p>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="js" class="btn" type="button" aria-pressed="false">Block JavaScript here</button>
+        <p class="hint">Writes a Chrome content setting and reloads the page, so it outlives the extension being disabled.</p>
+        <div class="domains" data-field="jsBlocked" data-label="Blocked on"></div>
+      </section>
+
+      <section id="view-consent" hidden>
+        <h2>Cookie banners</h2>
+        <label class="field-row"><input id="consentGlobal" type="checkbox" /> Reject cookie banners everywhere</label>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="consent" class="btn" type="button" aria-pressed="false">Reject consent</button>
+        <p class="hint">Applies on next reload.</p>
+        <div class="domains" data-field="consentDomains" data-label="Rejecting on"></div>
+      </section>
+
+      <section id="view-youtube" hidden>
+        <h2>YouTube</h2>
+        <label class="field-row"><input id="unhook" type="checkbox" /> Unhook YouTube (feed, suggestions, Shorts)</label>
+        <p class="hint">Search still works — only the algorithmic surfaces are hidden.</p>
+      </section>
+
+      <section id="view-json" hidden>
+        <h2>JSON</h2>
+        <label class="field-row"><input id="jsonFormat" type="checkbox" /> Format JSON responses</label>
+        <p class="hint">Only <code>application/json</code> responses. A browser that ships its own JSON viewer keeps it.</p>
+      </section>
+
+      <section id="view-pip" hidden>
+        <h2>Picture-in-Picture</h2>
+        <p class="hint">Float the largest video on the page: press <kbd>Alt</kbd>+<kbd>P</kbd>, or right-click the page and choose it.</p>
+      </section>
+
+      <section id="view-ua" hidden>
+        <h2>User agent</h2>
+        <label class="field">
+          <span>User-agent override</span>
+          <select id="ua">
+            <option value="">None</option>
+            <option>Chrome Android</option>
+            <option>Firefox Linux</option>
+          </select>
+        </label>
+        <p class="hint">Request headers only, for this window, until Chrome restarts. Not a device or engine emulation.</p>
+      </section>
+
+      <section id="view-redirects" hidden>
+        <h2>Redirects</h2>
+        <div class="row">
+          <button id="trace" class="btn" type="button">Redirect trace</button>
+        </div>
+        <p id="caption" class="hint">Nothing traced yet.</p>
+        <pre id="inspect"></pre>
+      </section>
+
       <section id="view-cookies" hidden>
         <h2>Cookies</h2>
         <div class="row">
@@ -81,7 +140,7 @@
           <button id="export" class="btn" type="button">Export displayed</button>
           <button id="import" class="btn btn-danger" type="button">Import JSON</button>
         </div>
-        <p class="hint">Export writes whatever the Inspector last fetched. Import replaces matching cookies in your Chrome profile.</p>
+        <p class="hint">Export writes whatever was last loaded. Import replaces matching cookies in your Chrome profile.</p>
         <label class="field"><span>Cookie JSON</span><textarea id="json" rows="12"></textarea></label>
       </section>
     </main>
