@@ -1,5 +1,6 @@
 import { tabData } from './cleaner';
-import { cookieImport, domainOf, scopedUrls } from './domain';
+import { cookieImport, scopedUrls } from './cookies';
+import { domainOf } from './urls';
 import { key, type RestoreTab, type TabGroup } from './models';
 import type { Handlers } from './protocol';
 import { toggleDomain } from './preferences';

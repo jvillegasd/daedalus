@@ -1,4 +1,5 @@
-import { luminance, matchesDomain } from '../src/domain';
+import { luminance } from '../src/appearance';
+import { matchesDomain } from '../src/urls';
 import { read } from '../src/preferences';
 import { send } from '../src/protocol';
 

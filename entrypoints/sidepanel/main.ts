@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/domain'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/urls'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // Left rail (or top strip when narrow) swaps one section in for another, and the choice

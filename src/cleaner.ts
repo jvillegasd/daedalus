@@ -1,4 +1,4 @@
-import { matchesDomain } from './domain';
+import { matchesDomain } from './urls';
 import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from './models';
 import { read } from './preferences';
 import { groups, setGroups } from './storage';

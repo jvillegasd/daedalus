@@ -1,5 +1,6 @@
 import { runClean } from '../src/cleaner';
-import { domainOf, reduceRedirect } from '../src/domain';
+import { reduceRedirect } from '../src/redirects';
+import { domainOf } from '../src/urls';
 import { handlers, redirects, setUnsaved, unsavedTabs, uaOverrides } from '../src/handlers';
 import { handle } from '../src/protocol';
 import { uaRule, uaRuleId } from '../src/ua';
