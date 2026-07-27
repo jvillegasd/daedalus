@@ -1,93 +1,119 @@
 @import '../theme.css';
 
 /* One page serves two contexts: the Chrome side panel (~400px) and the options page in a
-   full tab. Wide gets a left rail like the bookmark manager; narrow stacks the nav on top. */
+   full tab. Wide gets Media Bridge's left sidebar; narrow stacks the nav on top. */
 body {
   height: 100vh;
+  font-size: 14px;
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas: 'head head' 'nav main';
+  overflow: hidden;
 }
 
 header {
   grid-area: head;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 14px var(--space-4);
+  background: var(--surface-1);
   border-bottom: 1px solid var(--border);
-  background: var(--bg);
 }
-header h1 { font-size: 15px; margin: 0; }
+header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 
 nav {
   grid-area: nav;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 10px 8px;
+  padding: var(--space-2);
+  background: var(--surface-1);
   border-right: 1px solid var(--border);
   overflow: auto;
 }
 .nav-item {
-  font: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
   text-align: left;
-  padding: 7px 10px;
+  width: 100%;
+  padding: 9px 12px;
   border: 0;
-  border-radius: var(--radius);
-  background: none;
-  color: var(--text);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.15s;
 }
-.nav-item:hover { background: var(--surface); }
-.nav-item[aria-current='true'] { background: var(--accent); color: var(--accent-text); }
+.nav-item:hover { background: var(--surface-2); color: var(--text-primary); }
+.nav-item[aria-current='true'] { background: var(--accent-subtle); color: var(--accent); }
 .nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
-main { grid-area: main; overflow-y: auto; padding: 16px; }
-section { display: grid; align-content: start; gap: var(--gap); max-width: 780px; min-width: 0; }
+main { grid-area: main; overflow-y: auto; padding: var(--space-4); }
+section { display: grid; align-content: start; gap: var(--space-3); max-width: 780px; min-width: 0; }
 section[hidden] { display: none; }  /* display:grid above would otherwise beat the UA [hidden] rule */
-h2 { font-size: 16px; margin: 0 0 4px; }
+h2 { font-size: 14px; font-weight: 600; margin-bottom: var(--space-1); }
 
 @media (max-width: 620px) {
   /* three areas now, so the track list needs three rows or the nav claims the flexible one */
   body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'head' 'nav' 'main'; }
-  nav { flex-direction: row; align-items: center; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); padding: 8px; }
-  .nav-item { padding: 5px 10px; font-size: 13px; }
-  main { padding: 14px; }
+  nav { flex-direction: row; align-items: center; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+  .nav-item { width: auto; padding: 7px 12px; }
+  main { padding: var(--space-3); }
 }
 
-.row, .toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.row, .toggles { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .toggles .btn { flex: 1; min-width: 120px; }
 
-/* saved lists */
-article { display: grid; gap: 6px; padding: 10px 0; min-width: 0; }
-article + article { border-top: 1px solid var(--border); }
+/* saved lists — the card treatment Media Bridge gives detected videos and downloads */
+#groups { display: grid; gap: var(--space-2); }
+article {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s;
+}
+article:hover { border-color: var(--border-hover); }
 article .title { display: flex; align-items: center; gap: 6px; min-width: 0; }
-article .count { color: var(--muted); font-size: 12px; }
+article .count {
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--text-tertiary);
+  font-size: 10px;
+  font-weight: 500;
+}
 article .actions { display: flex; flex-wrap: wrap; gap: 6px; }
-article .btn { padding: 4px 10px; font-size: 12px; }
-article .btn.icon { padding: 2px 6px; line-height: 1; }
+article .btn { padding: 5px 10px; font-size: 12px; }
+article .btn.icon { padding: 3px 7px; line-height: 1; }
 
 article .name {
   font: inherit;
-  font-weight: 700;
+  font-weight: 600;
   flex: 1;
   min-width: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: none;
-  color: var(--text);
-  padding: 2px 5px;
-  margin-left: -5px;
+  color: var(--text-primary);
+  padding: 3px 6px;
+  margin-left: -6px;
 }
-article .name:hover { border-color: var(--border); }
-article .name:focus { border-color: var(--accent); background: var(--bg); outline: none; }
+article .name:hover { border-color: var(--border-hover); }
+article .name:focus { border-color: var(--accent); background: var(--surface-2); outline: none; }
 
-#domains { display: grid; gap: var(--gap); }
-article ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-article li { display: flex; align-items: center; gap: 4px; min-width: 0; }
+#domains { display: grid; gap: var(--space-3); }
+article ul { list-style: none; display: grid; gap: 2px; }
+article li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 article li .link {
   flex: 1;
   min-width: 0;
@@ -95,25 +121,25 @@ article li .link {
   text-align: left;
   background: none;
   border: 0;
-  padding: 3px 0;
-  color: var(--text);
+  padding: 4px 0;
+  color: var(--text-secondary);
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color 0.15s;
 }
-article li .link:hover { color: var(--accent); text-decoration: underline; }
+article li .link:hover { color: var(--accent); }
 
 #inspect {
-  margin: 0;
   max-height: 60vh;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
   font-size: 12px;
-  background: var(--surface);
+  background: var(--surface-1);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px;
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
 }
 #inspect:empty { display: none; }
