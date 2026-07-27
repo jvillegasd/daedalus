@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { pipMessage, requestPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { pipMessage, requestPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { mountCookies } from './cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -23,10 +23,6 @@ showView(localStorage.getItem('view') ?? 'lists', localStorage.getItem('drilled'
 // Three of these resolve through `activeOn`/`liveField`, so which list a click writes to
 // depends on the global switch. JavaScript has no global, so it is always its own list.
 const toggles = ['dark', 'autoplay', 'consent'] as const;
-let currentCookies: chrome.cookies.Cookie[] = [];
-// Rendering a few thousand cookie rows is a visible freeze, and nobody scrolls that far.
-// Export still writes the full set.
-const shown = 200;
 const item = (t: SavedTab, i: number) => `<li data-i="${i}">
   <button class="link" data-act="open" title="${escape(t.url)}">${escape(t.title)}</button>
   <button class="btn icon" data-act="tab-up" aria-label="Move up">↑</button>
@@ -201,7 +197,7 @@ el('brightness').onchange = () => write({ darkBrightness: Number(el('brightness'
   for (const pair of switches) { const [id, field] = pair.split(':') as [string, keyof Preferences]; el(id).checked = p[field] as boolean; }
   el('brightness').value = String(p.darkBrightness); showBrightness(el('brightness').value);
   el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('cleanerSave').checked=p.cleanerSave; el('cleanerList').value=p.cleanerListName;
-  syncSurfaces(); syncTarget(); renderClosed(); render();
+  syncSurfaces(); syncTarget(); renderClosed(); render(); mountCookies();
 })();
 
 // Called straight from the panel rather than through the worker: requestPictureInPicture
@@ -230,15 +226,6 @@ el('copyTrace').onclick = async () => {
 // All four go through `toggleSite`, including the JavaScript one, which is the only toggle
 // that writes a browser setting rather than a preference and so has to reload the page.
 for (const f of [...toggles, 'js'] as const) el(f).onclick = async () => { if (await toggleSite(f)) syncTarget(); };
-const loadCookies = async () => {
-  const t = await tab();
-  currentCookies = await send('cookies', { windowId: t.windowId });
-  const domains = new Set(currentCookies.map(c => c.domain.replace(/^\./, '')));
-  el('cookieScope').textContent = `${currentCookies.length} cookies across ${domains.size} domain${domains.size === 1 ? '' : 's'} open in this window.`;
-  renderCookies();
-  return currentCookies;
-};
-el('loadCookies').onclick = () => void loadCookies();
 el('ua').onchange = async () => { const t=await tab(), name=el('ua').value as keyof typeof uaProfiles; if(name) await send('ua', { windowId: t.windowId, domain: host(t), value: uaProfiles[name] }); };
 el('prefs').onclick = async () => { await write({ cleanerEnabled:el('cleaner').checked, cleanerMinutes:Number(el('minutes').value)||60, cleanerSave:el('cleanerSave').checked, cleanerListName:el('cleanerList').value.trim()||'Auto-saved' }); el('saved').textContent='Saved.'; setTimeout(()=>{ el('saved').textContent=''; }, 2000); };
 // The exclusion list is its own control now, not a field of the cleaner form: a list you
@@ -274,81 +261,3 @@ el('closed').onclick = async e => {
   await send('restore', { windowId: t.windowId, tab: entry });
   renderClosed();
 };
-// A row per cookie, collapsed to name and address; open one and every field it has is
-// editable. It used to be value-only, with a comment sending you to the JSON textarea for
-// the rest — the fields are perfectly editable, they just need the old address deleted when
-// the edit moves the cookie, which `cookieMoved` decides and the click handler acts on.
-const sameSites = ['no_restriction', 'lax', 'strict', 'unspecified'] as const;
-function renderCookies() {
-  const list = currentCookies.slice(0, shown);
-  el('cookieRows').innerHTML = list.map((c, i) => `<details class="cookie" data-i="${i}">
-    <summary><strong>${escape(c.name)}</strong> <span class="hint">${escape(c.domain)}${escape(c.path)}</span></summary>
-    <label class="field"><span>Value</span><textarea data-f="value" rows="2">${escape(c.value)}</textarea></label>
-    <label class="field"><span>Name</span><input data-f="name" value="${escape(c.name)}" /></label>
-    <label class="field"><span>Domain</span><input data-f="domain" value="${escape(c.domain)}" ${c.hostOnly ? 'disabled title="Host-only — this cookie is not sent to subdomains."' : ''} /></label>
-    <label class="field"><span>Path</span><input data-f="path" value="${escape(c.path)}" /></label>
-    <label class="field"><span>SameSite</span><select data-f="sameSite">${sameSites.map(s => `<option ${s === c.sameSite ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
-    <label class="field-row"><input type="checkbox" data-f="secure" ${c.secure ? 'checked' : ''} /> Secure</label>
-    <label class="field-row"><input type="checkbox" data-f="httpOnly" ${c.httpOnly ? 'checked' : ''} /> HttpOnly</label>
-    <div class="row">
-      <button class="btn btn-primary" data-act="save" type="button">Save</button>
-      <button class="btn btn-danger" data-act="delete" type="button">Delete</button>
-    </div>
-  </details>`).join('') || '<p class="hint">No cookies loaded.</p>';
-  if (currentCookies.length > shown) el('cookieRows').insertAdjacentHTML('beforeend', `<p class="hint">Showing first ${shown} of ${currentCookies.length}. Export writes all of them.</p>`);
-}
-
-/** The open row's inputs, read back as the record `chrome.cookies.set` wants. */
-const readEdit = (row: HTMLElement, c: chrome.cookies.Cookie): CookieEdit => {
-  const f = (name: string) => row.querySelector(`[data-f="${name}"]`) as HTMLInputElement;
-  return {
-    name: f('name').value.trim(), value: f('value').value,
-    domain: c.hostOnly ? c.domain : f('domain').value.trim(),
-    path: f('path').value.trim() || '/',
-    secure: f('secure').checked, httpOnly: f('httpOnly').checked,
-    sameSite: f('sameSite').value as chrome.cookies.SameSiteStatus,
-    expirationDate: c.expirationDate, hostOnly: c.hostOnly,
-  };
-};
-
-el('cookieRows').onclick = async e => {
-  const button = (e.target as HTMLElement).closest('button[data-act]') as HTMLElement | null;
-  if (!button) return;
-  const row = button.closest('.cookie') as HTMLElement;
-  const c = currentCookies[Number(row.dataset.i)];
-  try {
-    if (button.dataset.act === 'delete') {
-      if (!confirm(`Delete cookie "${c.name}" for ${c.domain}?`)) return;
-      await send('delete-cookie', { url: cookieUrl(c), name: c.name });
-    } else {
-      const edit = readEdit(row, c);
-      if (!edit.name) return alert('A cookie needs a name.');
-      await send('set-cookie', { cookie: cookieDetails(edit) });
-      // set() keys on domain+path+name and replaces rather than moves, so an edit to any of
-      // those three has just written a second cookie. Remove the one it was copied from.
-      if (cookieMoved(c, edit)) await send('delete-cookie', { url: cookieUrl(c), name: c.name });
-    }
-    await loadCookies();
-  } catch (err) { alert(String(err)); }
-};
-
-el('addCookie').onclick = async () => {
-  const t = await tab(), domain = host(t);
-  if (!domain) return alert('No page tab to add a cookie for.');
-  const name = prompt(`Cookie name for ${domain}?`)?.trim();
-  if (!name) return;
-  try {
-    await send('set-cookie', { cookie: cookieDetails({ name, value: '', domain, path: '/', secure: false, httpOnly: false }) });
-    await loadCookies();
-  } catch (err) { alert(String(err)); }
-};
-
-el('deleteAll').onclick = async () => {
-  if (!currentCookies.length) return;
-  if (!confirm(`Delete all ${currentCookies.length} cookies shown? This signs you out of these sites.`)) return;
-  for (const c of currentCookies) await send('delete-cookie', { url: cookieUrl(c), name: c.name });
-  await loadCookies();
-};
-
-el('export').onclick = () => { el('json').value=JSON.stringify(currentCookies, null, 2); };
-el('import').onclick = async () => { if (!confirm('Import overwrites matching cookies in your Chrome profile. Continue?')) return; try { await send('import-cookies', { json: el('json').value }); alert('Imported.'); } catch (e) { alert(String(e)); } };
