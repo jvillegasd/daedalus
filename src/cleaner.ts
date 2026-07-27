@@ -5,6 +5,16 @@ import { groups, setGroups } from './storage';
 
 export const tabData = (t: chrome.tabs.Tab): SavedTab => ({ url: t.url!, title: t.title || t.url!, favIconUrl: t.favIconUrl, pinned: t.pinned });
 
+/**
+ * Add one host to an exclusion list, accepting what people actually paste — a full URL, a
+ * bare host, with or without a scheme, in any case. It used to be a comma-separated string
+ * typed by hand, where a stray scheme silently matched nothing.
+ */
+export const addHost = (list: string[], input: string) => {
+  const host = input.trim().toLowerCase().replace(/^[a-z][a-z\d+.-]*:\/\//, '').replace(/[/?#].*$/, '');
+  return !host || list.includes(host) ? list : [...list, host];
+};
+
 export const eligibleForCleaning = (tab: chrome.tabs.Tab, excluded: string[]) =>
   !!tab.id && !tab.active && !tab.pinned && !tab.audible && !tab.discarded && !!tab.url && !matchesDomain(tab.url, excluded) && !tab.url.startsWith('chrome:');
 

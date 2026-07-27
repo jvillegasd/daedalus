@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { addRestore, appendToList, applyClean, eligibleForCleaning, planClean, tabsToClean } from '../src/cleaner';
+import { addHost, addRestore, appendToList, applyClean, eligibleForCleaning, planClean, tabsToClean } from '../src/cleaner';
 import { defaults, key, type Preferences, type TabGroup } from '../src/models';
 
 const now = Date.parse('2026-07-26T12:00:00Z');
@@ -136,5 +136,22 @@ describe('applying a plan', () => {
     };
     await applyClean({ close: [1], restore: [], groups: null });
     expect(Object.keys(written[0])).toEqual([key.restore]);
+  });
+
+  describe('addHost', () => {
+    test('takes a bare host as it is', () => {
+      expect(addHost([], 'Example.COM')).toEqual(['example.com']);
+    });
+
+    // matchesDomain compares hostnames, so a pasted URL used to be stored whole and match
+    // nothing at all — silently, which is the part that made it worth normalising here.
+    test('reduces a pasted URL to its host', () => {
+      expect(addHost([], 'https://mail.google.com/mail/u/0#inbox')).toEqual(['mail.google.com']);
+    });
+
+    test('ignores a duplicate and ignores nothing', () => {
+      expect(addHost(['example.com'], ' example.com ')).toEqual(['example.com']);
+      expect(addHost(['example.com'], '   ')).toEqual(['example.com']);
+    });
   });
 });

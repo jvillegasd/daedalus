@@ -23,10 +23,10 @@ Daedalus helps you save browser work, remove stale tabs safely, and inspect what
 | Tool | Purpose |
 |---|---|
 | **Read later** | Save a window's tabs as a named, tagged list—keeping them open or closing them. Lists show their items: open one, reorder either level, add the current tab, rename and retag in place. |
-| **Tab cleaner** | Close tabs left idle past a configurable threshold, optionally filing them into a read-later list first. |
-| **Page controls** | Dark mode across all sites with per-domain exceptions, autoplay blocking, per-site JavaScript blocking, and cookie-banner rejection. |
-| **Inspect** | Trace redirects and view cookies limited to domains open in the current window. |
-| **Cookie editor** | Edit or delete any cookie in that view in place, alongside the JSON import and export. |
+| **Tab cleaner** | Close tabs left idle past a configurable threshold, optionally filing them into a read-later list first. Keep a domain safe by adding it to the exclusion list, and reopen anything it closed this session. |
+| **Page controls** | Dark mode across all sites with per-domain exceptions, autoplay blocking, per-site JavaScript blocking, and cookie-banner rejection—each on its own page, with the list of sites it applies to. |
+| **Redirect trace** | Every URL the browser visited on the way to the current page, with the status code of each hop, copyable as text. |
+| **Cookie editor** | Cookies for the domains open in the current window. Open one to edit every field it has—value, name, domain, path, SameSite, secure, httpOnly—or add and delete them, alongside JSON import and export. |
 | **YouTube unhook** | Hide the home feed, the suggestions beside the player, end screens, and Shorts. Search still works. |
 | **Picture-in-Picture** | Float the largest video on the page with **Alt+P** or the page context menu. |
 | **JSON formatter** | Render `application/json` responses as indented, highlighted, readable text. A browser that ships its own JSON viewer (Opera) keeps it—Daedalus takes its theme back off the page and stands aside. |
@@ -70,9 +70,9 @@ bun run build   # Production extension
 
 ## Safety notes
 
-The cleaner never closes active, pinned, audible, excluded-domain, or detected-unsaved-form tabs, and it skips any tab whose idle age the browser can't report. It is still a destructive action: add important sites to the exclusion list, or turn on saving to a list so closed tabs are kept.
+The cleaner never closes active, pinned, audible, excluded-domain, or detected-unsaved-form tabs, and it skips any tab whose idle age the browser can't report. It is still a destructive action: add important sites to "Never close these", or turn on saving to a list so closed tabs are kept.
 
-"Restore last closed" is session-scoped and empties when the browser does. Saving to a read-later list is the durable option.
+The "Recently closed" list is session-scoped and empties when the browser does. Saving to a read-later list is the durable option.
 
 Chrome cookies are profile-wide. Daedalus filters its cookie view to domains open in the selected window, but it does not create isolated cookie jars. Editing or deleting a cookie there changes the profile's real cookie, and can sign you out.
 

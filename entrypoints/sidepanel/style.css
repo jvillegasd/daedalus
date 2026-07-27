@@ -177,31 +177,74 @@ article li .link {
 }
 article li .link:hover { color: var(--accent); }
 
-#inspect {
-  max-height: 60vh;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  font-size: 12px;
+/* one input plus its Add button, on one line */
+.add-row { display: flex; gap: var(--space-2); }
+.add-row input {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+.add-row input:focus { outline: none; border-color: var(--accent); }
+
+/* recently closed — the same list shape the saved lists use for their tabs */
+.closed { list-style: none; display: grid; gap: 2px; }
+.closed li { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.closed .link {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.closed .link:hover { color: var(--accent); }
+
+/* redirect chain — the status code is the reason to look, so it leads each row */
+.chain { list-style: none; display: grid; gap: 2px; }
+.chain:empty { display: none; }
+.chain li { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.chain li:last-child { border-bottom: 0; }
+.chain .code {
+  flex: none;
+  width: 3.2em;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.chain .code.hop { color: var(--accent); }
+.chain .url { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text-secondary); }
+/* The final hop is the page you are on, not a redirect — it carries the weight. */
+.chain li:last-child .url { color: var(--text-primary); }
+
+/* cookie editor — collapsed to name and address, opened to every field */
+#cookieRows { display: grid; gap: var(--space-2); max-height: 50vh; overflow: auto; }
+.cookie {
+  padding: var(--space-2) var(--space-3);
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: var(--space-3);
 }
-#inspect:empty { display: none; }
+.cookie[open] { border-color: var(--border-hover); }
+.cookie > summary { cursor: pointer; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.cookie[open] > summary { margin-bottom: var(--space-2); }
+.cookie .field, .cookie .field-row, .cookie .row { margin-top: var(--space-2); }
+.cookie textarea { resize: vertical; }
 
-/* cookie editor — one row per cookie, the value the only editable field */
-#cookieRows { display: grid; gap: var(--space-2); max-height: 50vh; overflow: auto; }
-.cookie { display: grid; grid-template-columns: 1fr auto auto; gap: var(--space-1); align-items: center; }
-.cookie-key { grid-column: 1 / -1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-.cookie-value {
-  font: inherit;
-  font-size: 12px;
-  min-width: 0;
-  padding: 4px 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-primary);
-}
-.cookie-value:focus { border-color: var(--accent); outline: none; }
+details > summary { cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+details > summary:hover { color: var(--text-primary); }
+details[open] > summary { margin-bottom: var(--space-2); }
+main > section > details { display: grid; gap: var(--space-2); }

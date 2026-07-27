@@ -42,15 +42,24 @@
         <h2>Tab cleaner</h2>
         <label class="field-row"><input id="cleaner" type="checkbox" /> Auto-close inactive tabs</label>
         <label class="field"><span>Inactive for (minutes)</span><input id="minutes" type="number" min="1" value="60" /></label>
-        <label class="field"><span>Never close these domains</span><input id="exclude" placeholder="example.com, mail.google.com" /></label>
         <label class="field-row"><input id="cleanerSave" type="checkbox" /> Save closed tabs to a list first</label>
         <label class="field"><span>List name</span><input id="cleanerList" placeholder="Auto-saved" /></label>
-        <p class="hint">Off, tabs are only recoverable with "Restore last closed" until the browser restarts.</p>
+        <p class="hint">Off, closed tabs are only recoverable from the list below, until the browser restarts.</p>
         <div class="row">
           <button id="prefs" class="btn btn-primary" type="button">Save cleaner</button>
-          <button id="restore" class="btn" type="button">Restore last closed</button>
         </div>
         <p id="saved" role="status" class="hint"></p>
+
+        <h2>Never close these</h2>
+        <div class="add-row">
+          <input id="excludeInput" placeholder="example.com" aria-label="Domain to never close" />
+          <button id="excludeAdd" class="btn" type="button">Add</button>
+        </div>
+        <div class="domains" data-field="excludedDomains" data-label="Excluded"></div>
+
+        <h2>Recently closed</h2>
+        <p class="hint">Tabs this cleaner closed, until the browser restarts.</p>
+        <ul id="closed" class="closed"></ul>
       </section>
 
       <!-- The four page features below share a shape — master switch, this-site row, that
@@ -123,25 +132,34 @@
 
       <section id="view-redirects" hidden>
         <h2>Redirects</h2>
+        <p class="hint">Every URL the browser visited on the way to the current page. One entry means it went straight there.</p>
         <div class="row">
-          <button id="trace" class="btn" type="button">Redirect trace</button>
+          <button id="trace" class="btn btn-primary" type="button">Trace this tab</button>
+          <button id="copyTrace" class="btn" type="button">Copy</button>
         </div>
-        <p id="caption" class="hint">Nothing traced yet.</p>
-        <pre id="inspect"></pre>
+        <ol id="chain" class="chain"></ol>
+        <p id="traceStatus" role="status" class="hint">Nothing traced yet.</p>
       </section>
 
       <section id="view-cookies" hidden>
         <h2>Cookies</h2>
+        <p class="hint">Cookies for the domains open in this window. These are your real profile cookies — editing one can sign you out.</p>
         <div class="row">
-          <button id="loadCookies" class="btn" type="button">Load cookies in window</button>
+          <button id="loadCookies" class="btn btn-primary" type="button">Load</button>
+          <button id="addCookie" class="btn" type="button">Add cookie</button>
+          <button id="deleteAll" class="btn btn-danger" type="button">Delete all shown</button>
         </div>
+        <p id="cookieScope" role="status" class="hint">Nothing loaded.</p>
         <div id="cookieRows"></div>
-        <div class="row">
-          <button id="export" class="btn" type="button">Export displayed</button>
-          <button id="import" class="btn btn-danger" type="button">Import JSON</button>
-        </div>
-        <p class="hint">Export writes whatever was last loaded. Import replaces matching cookies in your Chrome profile.</p>
-        <label class="field"><span>Cookie JSON</span><textarea id="json" rows="12"></textarea></label>
+        <details>
+          <summary>Import / export JSON</summary>
+          <div class="row">
+            <button id="export" class="btn" type="button">Export displayed</button>
+            <button id="import" class="btn btn-danger" type="button">Import JSON</button>
+          </div>
+          <p class="hint">Export writes whatever was last loaded. Import replaces matching cookies in your Chrome profile.</p>
+          <label class="field"><span>Cookie JSON</span><textarea id="json" rows="12"></textarea></label>
+        </details>
       </section>
     </main>
     <script type="module" src="./main.ts"></script>
