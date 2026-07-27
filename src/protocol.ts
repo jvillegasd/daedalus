@@ -1,6 +1,5 @@
 import type { RestoreTab, TabGroup } from './models';
-
-export type DomainField = 'darkExcluded' | 'autoplayAllowlist' | 'consentDomains';
+import type { DomainField } from './preferences';
 export type Redirect = { url: string; statusCode?: number };
 
 /**

@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups, prefs, savePrefs } from '../../src/storage'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/domain'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/domain'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // Left rail (or top strip when narrow) swaps one section in for another, and the choice
@@ -107,7 +107,7 @@ const escape = (s: string) => s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;
 const labels = { darkExcluded: 'Dark mode exceptions', autoplayAllowlist: 'Autoplay allowed', consentDomains: 'Auto-reject consent' } as const;
 
 async function syncTarget() {
-  const p = await prefs();
+  const p = await read();
   const domain = host(await tab());
   el('target').textContent = domain ? `Acting on ${domain} — applies on next reload.` : 'No page tab found.';
   for (const [id, field] of toggles) el(id).setAttribute('aria-pressed', String(p[field].includes(domain)));
@@ -121,9 +121,8 @@ async function syncTarget() {
 el('domains').onclick = async e => {
   const button = (e.target as HTMLElement).closest('button[data-field]') as HTMLElement | null;
   if (!button) return;
-  const field = button.dataset.field as typeof toggles[number][1];
-  const p = await prefs();
-  await savePrefs({ [field]: p[field].filter(d => d !== button.dataset.domain) });
+  // The chip only exists for a domain already in the list, so toggling it is the removal.
+  await toggleDomain(button.dataset.field as DomainField, button.dataset.domain!);
   syncTarget();
 };
 // syncTarget reads prefs and rebuilds the domain chips, and tab events arrive in bursts —
@@ -133,13 +132,13 @@ let queued = 0;
 const refresh = () => { cancelAnimationFrame(queued); queued = requestAnimationFrame(() => syncTarget()); };
 chrome.tabs.onActivated.addListener(refresh);
 chrome.tabs.onUpdated.addListener((_, change, t) => { if (change.url && t.active) refresh(); });
-el('darkGlobal').onchange = () => savePrefs({ darkEnabled: el('darkGlobal').checked });
-(async () => { const p = await prefs(); el('darkGlobal').checked=p.darkEnabled; el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('exclude').value=p.excludedDomains.join(','); el('cleanerSave').checked=p.cleanerSave; el('cleanerList').value=p.cleanerListName; syncTarget(); render(); })();
+el('darkGlobal').onchange = () => write({ darkEnabled: el('darkGlobal').checked });
+(async () => { const p = await read(); el('darkGlobal').checked=p.darkEnabled; el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('exclude').value=p.excludedDomains.join(','); el('cleanerSave').checked=p.cleanerSave; el('cleanerList').value=p.cleanerListName; syncTarget(); render(); })();
 el('trace').onclick = async () => { const t = await tab(); show('Redirect chain', await send('redirects', { tabId: t.id! })); };
 for (const [id, field] of toggles) el(id).onclick = async () => { const t=await tab(); await send('toggle-pref', { field, domain: host(t) }); syncTarget(); };
 el('cookies').onclick = async () => { const t=await tab(); currentCookies = await send('cookies', { windowId: t.windowId }); show(`Cookies in this window (${currentCookies.length})`, currentCookies); };
 el('ua').onchange = async () => { const t=await tab(), name=el('ua').value as keyof typeof uaProfiles; if(name) await send('ua', { windowId: t.windowId, domain: host(t), value: uaProfiles[name] }); };
-el('prefs').onclick = async () => { await savePrefs({ cleanerEnabled:el('cleaner').checked, cleanerMinutes:Number(el('minutes').value)||60, cleanerSave:el('cleanerSave').checked, cleanerListName:el('cleanerList').value.trim()||'Auto-saved', excludedDomains:el('exclude').value.split(',').map(x=>x.trim()).filter(Boolean) }); el('saved').textContent='Saved.'; setTimeout(()=>{ el('saved').textContent=''; }, 2000); };
+el('prefs').onclick = async () => { await write({ cleanerEnabled:el('cleaner').checked, cleanerMinutes:Number(el('minutes').value)||60, cleanerSave:el('cleanerSave').checked, cleanerListName:el('cleanerList').value.trim()||'Auto-saved', excludedDomains:el('exclude').value.split(',').map(x=>x.trim()).filter(Boolean) }); el('saved').textContent='Saved.'; setTimeout(()=>{ el('saved').textContent=''; }, 2000); };
 el('restore').onclick = async () => { const saved=((await chrome.storage.session.get(key.restore))[key.restore]??[]) as RestoreTab[]; if(saved[0]) { const t=await tab(); await send('restore', { windowId: t.windowId, tab: saved[0] }); } };
 el('export').onclick = () => { el('json').value=JSON.stringify(currentCookies, null, 2); };
 el('import').onclick = async () => { if (!confirm('Import overwrites matching cookies in your Chrome profile. Continue?')) return; try { await send('import-cookies', { json: el('json').value }); alert('Imported.'); } catch (e) { alert(String(e)); } };
