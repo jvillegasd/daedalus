@@ -1,6 +1,7 @@
 import './style.css';
 import { groups, setGroups } from '../../src/storage';
 import type { SavedTab, TabGroup } from '../../src/models';
+import { apply } from '../../src/lists';
 import { escape } from '../../src/html';
 import { send } from '../../src/protocol';
 import { parseTags } from '../../src/tags';
@@ -163,7 +164,9 @@ $('pop').onclick = async e => {
   if (!g || !g.tabs[popIndex]) return;
   $('pop').hidePopover();
   if (act === 'pop-open') return void chrome.tabs.create({ url: g.tabs[popIndex].url });
-  const next = list.map(x => x.id === g.id ? { ...x, tabs: x.tabs.filter((_, n) => n !== popIndex) } : x);
+  // The same rule the manager removes a tab with — this used to be a second copy of it.
+  const next = apply(list, { kind: 'tab-remove', group: g.id, index: popIndex });
+  if (next === list) return;
   await setGroups(next);
   renderGroups(next);
 };

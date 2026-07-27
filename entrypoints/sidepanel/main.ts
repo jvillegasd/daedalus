@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -72,6 +72,14 @@ const card = (g: TabGroup) => `<article data-group="${g.id}">
 // enough that reordering one tab feels slow.
 async function render(list?: TabGroup[]) { const all = list ?? await groups(); el('groups').innerHTML = all.map(card).join('') || '<p class="hint">No saved lists yet.</p>'; }
 const commit = async (list: TabGroup[]) => { await setGroups(list); render(list); };
+// Read, apply, and write only if it changed: `apply` hands back the same array for a click
+// that did nothing — a list deleted in the popup a moment ago, a ↑ on the first tab — and
+// re-rendering that would snap the open disclosures shut for no reason.
+const change = async (action: ListAction) => {
+  const list = await groups();
+  const next = apply(list, action);
+  if (next !== list) await commit(next);
+};
 // `toggle` does not bubble, so it is caught on the way down instead.
 el('groups').addEventListener('toggle', e => {
   const details = e.target as HTMLDetailsElement;
@@ -85,39 +93,40 @@ el('groups').addEventListener('toggle', e => {
 el('groups').onchange = async e => {
   const input = (e.target as HTMLElement).closest('input[data-act]') as HTMLInputElement | null;
   if (!input) return;
-  const id = (input.closest('article') as HTMLElement).dataset.group;
-  const list = await groups();
-  const group = list.find(g => g.id === id);
-  if (!group) return;
-  // One field accepts several tags at once, and adding one you already have is a no-op.
-  const added = parseTags(input.value, group.tags);
-  const patch = input.dataset.act === 'rename'
-    ? { name: input.value.trim() || 'Untitled list' }
-    : { tags: [...group.tags, ...added] };
-  commit(list.map(g => g.id === id ? { ...g, ...patch } : g));
+  const group = (input.closest('article') as HTMLElement).dataset.group!;
+  // The raw value goes through: trimming a name and splitting a tag field are `apply`'s
+  // rules, not this handler's.
+  change(input.dataset.act === 'rename'
+    ? { kind: 'rename', group, name: input.value }
+    : { kind: 'tag-add', group, input: input.value });
 };
 
 el('groups').onclick = async e => {
   const button = (e.target as HTMLElement).closest('button[data-act]') as HTMLElement | null;
   if (!button) return;
-  const list = await groups();
-  const gi = list.findIndex(g => g.id === (button.closest('article') as HTMLElement).dataset.group);
-  if (gi < 0) return;
-  const g = list[gi];
-  const i = Number((button.closest('li') as HTMLElement | null)?.dataset.i ?? -1);
-  const withTabs = (tabs: SavedTab[]) => list.map((x, n) => n === gi ? { ...x, tabs } : x);
+  const group = (button.closest('article') as HTMLElement).dataset.group!;
+  const index = Number((button.closest('li') as HTMLElement | null)?.dataset.i ?? -1);
+  const act = button.dataset.act;
 
-  switch (button.dataset.act) {
-    case 'open': return void chrome.tabs.create({ url: g.tabs[i].url });
-    case 'open-all': await Promise.all(g.tabs.map(t => chrome.tabs.create({ url: t.url, active: false }))); return;
-    case 'add-current': { const t = await tab(); if (!t?.url) return; return commit(withTabs([...g.tabs, { url: t.url, title: t.title || t.url, favIconUrl: t.favIconUrl, pinned: t.pinned }])); }
-    case 'tag-remove': { const t = Number(button.dataset.tag); return commit(list.map((x, n) => n === gi ? { ...x, tags: x.tags.filter((_, k) => k !== t) } : x)); }
-    case 'tab-remove': return commit(withTabs(g.tabs.filter((_, n) => n !== i)));
-    case 'tab-up': return commit(withTabs(move(g.tabs, i, -1)));
-    case 'tab-down': return commit(withTabs(move(g.tabs, i, 1)));
-    case 'group-up': return commit(move(list, gi, -1));
-    case 'group-down': return commit(move(list, gi, 1));
-    case 'group-remove': if (!confirm(`Delete "${g.name}" and its ${g.tabs.length} tabs?`)) return; return commit(list.filter(x => x.id !== g.id));
+  // The three that are not transitions of the list: two open tabs, and one has to ask before
+  // it destroys anything. They are the only ones that need the list itself in hand.
+  if (act === 'open' || act === 'open-all' || act === 'group-remove') {
+    const g = (await groups()).find(x => x.id === group);
+    if (!g) return;
+    if (act === 'open') return void chrome.tabs.create({ url: g.tabs[index].url });
+    if (act === 'open-all') { await Promise.all(g.tabs.map(t => chrome.tabs.create({ url: t.url, active: false }))); return; }
+    if (!confirm(`Delete "${g.name}" and its ${g.tabs.length} tabs?`)) return;
+    return change({ kind: 'group-remove', group });
+  }
+
+  switch (act) {
+    case 'add-current': { const t = await tab(); if (!t?.url) return; return change({ kind: 'append', group, tab: tabData(t) }); }
+    case 'tag-remove': return change({ kind: 'tag-remove', group, index: Number(button.dataset.tag) });
+    case 'tab-remove': return change({ kind: 'tab-remove', group, index });
+    case 'tab-up': return change({ kind: 'tab-move', group, index, by: -1 });
+    case 'tab-down': return change({ kind: 'tab-move', group, index, by: 1 });
+    case 'group-up': return change({ kind: 'group-move', group, by: -1 });
+    case 'group-down': return change({ kind: 'group-move', group, by: 1 });
   }
 };
 // Each feature page carries the container for its own list, so the four lists no longer
