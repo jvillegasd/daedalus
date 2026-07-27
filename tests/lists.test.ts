@@ -51,6 +51,8 @@ describe('lists', () => {
     expect(first.next).toBe(first.all);
     const last = run({ kind: 'group-move', group: 'c', by: 1 });
     expect(last.next).toBe(last.all);
+    const nothing = run({ kind: 'tab-move', group: 'a', index: -1, by: 1 });
+    expect(nothing.next).toBe(nothing.all);
   });
 
   test('group-remove leaves the others in order', () => {
