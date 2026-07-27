@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/urls'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // Left rail (or top strip when narrow) swaps one section in for another, and the choice
@@ -73,7 +73,7 @@ el('groups').onchange = async e => {
   const group = list.find(g => g.id === id);
   if (!group) return;
   // One field accepts several tags at once, and adding one you already have is a no-op.
-  const added = input.value.split(',').map(t => t.trim()).filter(t => t && !group.tags.includes(t));
+  const added = parseTags(input.value, group.tags);
   const patch = input.dataset.act === 'rename'
     ? { name: input.value.trim() || 'Untitled list' }
     : { tags: [...group.tags, ...added] };
@@ -103,7 +103,6 @@ el('groups').onclick = async e => {
     case 'group-remove': if (!confirm(`Delete "${g.name}" and its ${g.tabs.length} tabs?`)) return; return commit(list.filter(x => x.id !== g.id));
   }
 };
-const escape = (s: string) => s.replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]!));
 const labels = { darkExcluded: 'Dark mode exceptions', autoplayAllowlist: 'Autoplay allowed', consentDomains: 'Auto-reject consent' } as const;
 
 async function syncTarget() {
