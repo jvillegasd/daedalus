@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -137,12 +137,12 @@ async function syncTarget() {
   const t = await tab();
   const domain = host(t);
   for (const span of document.querySelectorAll<HTMLElement>('[data-host]')) span.textContent = domain || 'no page tab found';
-  // Pressed means the feature is running on this page — not "this host is in some list",
-  // which was true of a list the global switch had made inert.
+  // Two different questions, deliberately: the label offers the opposite of what is happening
+  // (`activeOn`), while pressed reflects the state the button's name asserts (`pressedOn`).
+  // They differ only for autoplay, whose feature is blocking but whose name is not.
   for (const f of toggles) {
-    const on = activeOn(f, p, url(t));
-    el(f).setAttribute('aria-pressed', String(on));
-    el(f).textContent = verbs[f][on ? 0 : 1];
+    el(f).setAttribute('aria-pressed', String(pressedOn(f, p, url(t))));
+    el(f).textContent = verbs[f][activeOn(f, p, url(t)) ? 0 : 1];
   }
   el('js').setAttribute('aria-pressed', String(p.jsBlocked.includes(domain)));
   // Each page lists what its own fields hold — otherwise a rule set on another site is

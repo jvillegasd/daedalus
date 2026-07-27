@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { defaults, key } from '../src/models';
-import { activeOn, liveField, read, toggleDomain, toggled, write } from '../src/preferences';
+import { activeOn, liveField, pressedOn, read, toggleDomain, toggled, write } from '../src/preferences';
 
 /** A sync area that starts out as a profile nothing has ever written. */
 let stored: Record<string, unknown>;
@@ -101,6 +101,25 @@ describe('per-site scope', () => {
 
   test('subdomains follow their parent, the same as every other domain rule', () => {
     expect(activeOn('dark', prefs({ darkEnabled: true, darkExcluded: ['example.com'] }), 'https://app.example.com/')).toBe(false);
+  });
+
+  // A button is labelled with a state, and lighting it up has to assert that state. Autoplay
+  // is the one whose feature (blocking) is the opposite of its name, so it is the one that
+  // inverts — and the one a later refactor is most likely to quietly flip back.
+  test('a lit autoplay button means autoplay plays, not that blocking runs', () => {
+    const blocking = prefs({ autoplayEnabled: true });
+    expect(activeOn('autoplay', blocking, 'https://a.com/')).toBe(true);
+    expect(pressedOn('autoplay', blocking, 'https://a.com/')).toBe(false);
+
+    const allowed = prefs({ autoplayEnabled: true, autoplayAllowlist: ['a.com'] });
+    expect(pressedOn('autoplay', allowed, 'https://a.com/')).toBe(true);
+  });
+
+  test('the other two light up when the feature runs, matching their labels', () => {
+    const p = prefs({ darkEnabled: true, consentEnabled: true });
+    expect(pressedOn('dark', p, 'https://a.com/')).toBe(true);
+    expect(pressedOn('consent', p, 'https://a.com/')).toBe(true);
+    expect(pressedOn('dark', prefs({ darkEnabled: false }), 'https://a.com/')).toBe(false);
   });
 
   // The three rules it replaced, reproduced exactly, so an upgrade changes nothing:
