@@ -132,6 +132,8 @@ article .count {
   font-size: 10px;
   font-weight: 500;
 }
+article .items > summary { font-size: 12px; color: var(--text-tertiary); }
+article .items[open] > summary { margin-bottom: var(--space-1); }
 article .actions { display: flex; flex-wrap: wrap; gap: 6px; }
 article .btn { padding: 5px 10px; font-size: 12px; }
 article .btn.icon { padding: 3px 7px; line-height: 1; }

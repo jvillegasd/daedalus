@@ -37,6 +37,11 @@ const item = (t: SavedTab, i: number) => `<li data-i="${i}">
   <button class="btn icon btn-danger" data-act="tab-remove" aria-label="Remove">✕</button>
 </li>`;
 
+// A list shows itself as a card; its tabs are behind the disclosure. render() rebuilds the
+// whole container, so which cards are open has to live out here — otherwise reordering a tab
+// inside an open list would snap it shut under your cursor.
+const opened = new Set<string>();
+
 const card = (g: TabGroup) => `<article data-group="${g.id}">
   <div class="title">
     <input class="name" data-act="rename" value="${escape(g.name)}" aria-label="List name" />
@@ -48,7 +53,10 @@ const card = (g: TabGroup) => `<article data-group="${g.id}">
     ${g.tags.map((t, i) => `<span class="chip">${escape(t)}<button class="chip-x" data-act="tag-remove" data-tag="${i}" aria-label="Remove tag ${escape(t)}">×</button></span>`).join('')}
     <input class="tag-add" data-act="tag-add" placeholder="+ tag" aria-label="Add tag" />
   </div>
-  <ul>${g.tabs.map(item).join('') || '<li class="hint">Empty list.</li>'}</ul>
+  <details class="items"${opened.has(g.id) ? ' open' : ''}>
+    <summary>Tabs</summary>
+    <ul>${g.tabs.map(item).join('') || '<li class="hint">Empty list.</li>'}</ul>
+  </details>
   <div class="actions">
     <button class="btn" data-act="open-all">Open all</button>
     <button class="btn" data-act="add-current">Add current tab</button>
@@ -62,6 +70,13 @@ const card = (g: TabGroup) => `<article data-group="${g.id}">
 // enough that reordering one tab feels slow.
 async function render(list?: TabGroup[]) { const all = list ?? await groups(); el('groups').innerHTML = all.map(card).join('') || '<p class="hint">No saved lists yet.</p>'; }
 const commit = async (list: TabGroup[]) => { await setGroups(list); render(list); };
+// `toggle` does not bubble, so it is caught on the way down instead.
+el('groups').addEventListener('toggle', e => {
+  const details = e.target as HTMLDetailsElement;
+  const id = (details.closest('article') as HTMLElement | null)?.dataset.group;
+  if (!id) return;
+  if (details.open) opened.add(id); else opened.delete(id);
+}, true);
 
 // Name and tags edit in place: the inputs look like text until hovered or focused, and
 // commit on blur/Enter, so there is no edit mode to enter or leave.
