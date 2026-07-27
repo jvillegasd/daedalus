@@ -205,8 +205,13 @@ el('brightness').onchange = () => write({ darkBrightness: Number(el('brightness'
 el('pip').onclick = async () => {
   const t = await tab();
   if (!t?.id) return;
-  await chrome.scripting.executeScript({ target: { tabId: t.id, allFrames: true }, func: enterPip, world: 'MAIN' }).catch(() => {});
-  el('pipStatus').textContent = 'Asked the tab to float its largest video. Nothing happened? The page may have no playable video.';
+  const out = await chrome.scripting
+    .executeScript({ target: { tabId: t.id, allFrames: true }, func: enterPip, world: 'MAIN' })
+    .catch((e: Error) => [{ result: e.message }]);
+  const reasons = out.map(r => r.result).filter(Boolean) as string[];
+  el('pipStatus').textContent = reasons.includes('ok') || reasons.includes('closed')
+    ? 'Done.'
+    : reasons.find(r => r !== 'no video in this frame') ?? 'No video on this page.';
 };
 
 // The chain, rendered rather than dumped: a status code beside each hop is the whole reason
