@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -20,7 +20,9 @@ el('back').onclick = () => showView(localStorage.getItem('view') ?? 'lists', fal
 showView(localStorage.getItem('view') ?? 'lists', localStorage.getItem('drilled') !== 'false');
 // Each pair is a button plus the domain list it adds to or removes the current host from.
 // 'dark' is an exception list (pressed = skip this site); the other two are allowlists.
-const toggles = [['dark', 'darkExcluded'], ['autoplay', 'autoplayAllowlist'], ['consent', 'consentDomains'], ['js', 'jsBlocked']] as const;
+// Three of these resolve through `activeOn`/`liveField`, so which list a click writes to
+// depends on the global switch. JavaScript has no global, so it is always its own list.
+const toggles = ['dark', 'autoplay', 'consent'] as const;
 let currentCookies: chrome.cookies.Cookie[] = [];
 // The manager runs as a real side panel in Chrome, but as an ordinary tab where the
 // sidePanel API is missing (Opera) — there the active tab is this page, so skip our own
@@ -122,17 +124,38 @@ el('groups').onclick = async e => {
 // stack into one column where "github.com" under Dark mode reads the same as under JS.
 const domainLists = [...document.querySelectorAll<HTMLElement>('.domains')];
 
+const url = (t?: chrome.tabs.Tab) => t?.url ?? '';
+/** What the button offers to do next, given what it is currently doing. */
+const verbs = {
+  dark: ['Skip dark mode here', 'Use dark mode here'],
+  autoplay: ['Allow autoplay here', 'Block autoplay here'],
+  consent: ['Allow GDPR banners here', 'Reject GDPR banners here'],
+} as const;
+
 async function syncTarget() {
   const p = await read();
-  const domain = host(await tab());
+  const t = await tab();
+  const domain = host(t);
   for (const span of document.querySelectorAll<HTMLElement>('[data-host]')) span.textContent = domain || 'no page tab found';
-  for (const [id, field] of toggles) el(id).setAttribute('aria-pressed', String(p[field].includes(domain)));
-  // The buttons only ever act on the current tab, so each page also lists what its own
-  // field already holds — otherwise a rule set on another site is invisible.
+  // Pressed means the feature is running on this page — not "this host is in some list",
+  // which was true of a list the global switch had made inert.
+  for (const f of toggles) {
+    const on = activeOn(f, p, url(t));
+    el(f).setAttribute('aria-pressed', String(on));
+    el(f).textContent = verbs[f][on ? 0 : 1];
+  }
+  el('js').setAttribute('aria-pressed', String(p.jsBlocked.includes(domain)));
+  // Each page lists what its own fields hold — otherwise a rule set on another site is
+  // invisible. The list the global has made inert is shown only when it still has entries
+  // in it, so the usual case is one list and a stale entry is never stranded.
   for (const box of domainLists) {
     const field = box.dataset.field as DomainField;
+    const inert = box.dataset.live !== undefined && liveField(box.dataset.live as Scoped, p) !== field;
+    box.hidden = inert && !p[field].length;
+    box.classList.toggle('inert', inert);
     box.innerHTML = `<span>${escape(box.dataset.label!)} (${p[field].length})</span>
-      <div class="tags">${p[field].map(d => `<span class="chip">${escape(d)}<button class="chip-x" data-field="${field}" data-domain="${escape(d)}" aria-label="Remove ${escape(d)}">×</button></span>`).join('') || '<span class="hint">None.</span>'}</div>`;
+      <div class="tags">${p[field].map(d => `<span class="chip">${escape(d)}<button class="chip-x" data-field="${field}" data-domain="${escape(d)}" aria-label="Remove ${escape(d)}">×</button></span>`).join('') || '<span class="hint">None.</span>'}</div>
+      ${inert ? '<p class="hint">Not in effect while the switch above is set the way it is.</p>' : ''}`;
   }
 }
 
@@ -201,13 +224,19 @@ el('copyTrace').onclick = async () => {
   await navigator.clipboard.writeText(redirectText(chain));
   el('traceStatus').textContent = 'Copied.';
 };
+for (const f of toggles) el(f).onclick = async () => {
+  const domain = host(await tab());
+  if (!domain) return;
+  await send('toggle-pref', { field: liveField(f, await read()), domain });
+  syncTarget();
+};
 // Blocking JavaScript is the one toggle that changes a browser setting rather than a
 // preference our own scripts read, and the page has to be reloaded for it to mean anything.
-for (const [id, field] of toggles) el(id).onclick = async () => {
+el('js').onclick = async () => {
   const t = await tab(), domain = host(t);
   if (!domain) return;
-  if (field === 'jsBlocked') { await toggleJs(domain); if (t?.id) chrome.tabs.reload(t.id); }
-  else await send('toggle-pref', { field, domain });
+  await toggleJs(domain);
+  if (t?.id) chrome.tabs.reload(t.id);
   syncTarget();
 };
 const loadCookies = async () => {

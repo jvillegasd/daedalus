@@ -4,7 +4,7 @@ import type { SavedTab, TabGroup } from '../../src/models';
 import { escape } from '../../src/html';
 import { send } from '../../src/protocol';
 import { parseTags } from '../../src/tags';
-import { read } from '../../src/preferences';
+import { activeOn, liveField, read } from '../../src/preferences';
 import { toggleJs } from '../../src/jsblock';
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const status = (text: string, error = false) => { $('status').toggleAttribute('data-error', error); $('status').textContent = text; };
@@ -18,26 +18,34 @@ chrome.windows.getCurrent().then(w => { windowId = w.id; }, e => status(String(e
 // else about them — the lists, the master switches, the options — so this shares its rule
 // (toggleDomain) rather than a second copy of it, and pressed means the same thing here:
 // the current host is in that field's list.
-const siteToggles = [['dark', 'darkExcluded'], ['autoplay', 'autoplayAllowlist'], ['js', 'jsBlocked'], ['consent', 'consentDomains']] as const;
+const siteToggles = ['dark', 'autoplay', 'consent'] as const;
 const activeTab = async () => (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
 const hostOf = (t?: chrome.tabs.Tab) => { try { return new URL(t!.url!).hostname; } catch { return ''; } };
 
 async function syncSite() {
-  const domain = hostOf(await activeTab());
+  const t = await activeTab();
+  const domain = hostOf(t);
   $('siteHost').textContent = domain || 'No page tab';
   const p = await read();
-  for (const [id, field] of siteToggles) {
-    $(id).setAttribute('aria-pressed', String(p[field].includes(domain)));
-    $(id).toggleAttribute('disabled', !domain);
-  }
+  // Pressed means the feature is running on this page. It used to mean "this host is in one
+  // particular list", which said nothing at all once the global switch made that list inert.
+  for (const f of siteToggles) $(f).setAttribute('aria-pressed', String(activeOn(f, p, t?.url ?? '')));
+  $('js').setAttribute('aria-pressed', String(p.jsBlocked.includes(domain)));
+  for (const id of [...siteToggles, 'js']) $(id).toggleAttribute('disabled', !domain);
 }
-for (const [id, field] of siteToggles) $(id).onclick = async () => {
+for (const f of siteToggles) $(f).onclick = async () => {
+  const domain = hostOf(await activeTab());
+  if (!domain) return;
+  await send('toggle-pref', { field: liveField(f, await read()), domain });
+  syncSite();
+};
+// Blocking JS writes a Chrome content setting rather than one of our preferences, and the
+// page has to reload for it to mean anything.
+$('js').onclick = async () => {
   const t = await activeTab(), domain = hostOf(t);
   if (!domain) return;
-  // Blocking JS writes a Chrome content setting rather than one of our preferences, and the
-  // page has to reload for it to mean anything.
-  if (field === 'jsBlocked') { await toggleJs(domain); if (t?.id) chrome.tabs.reload(t.id); }
-  else await send('toggle-pref', { field, domain });
+  await toggleJs(domain);
+  if (t?.id) chrome.tabs.reload(t.id);
   syncSite();
 };
 syncSite();

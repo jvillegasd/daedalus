@@ -1,7 +1,6 @@
 import { luminance } from '../src/appearance';
 import { findReject } from '../src/consent';
-import { matchesDomain } from '../src/urls';
-import { read } from '../src/preferences';
+import { activeOn, read } from '../src/preferences';
 import { send } from '../src/protocol';
 
 const invert = 'invert(1) hue-rotate(180deg)';
@@ -43,7 +42,6 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
   addEventListener('input', e => { if (!dirty && (e.target as Element).matches('input,textarea,[contenteditable]')) { dirty = true; send('unsaved', { value: true }); } }, true);
   addEventListener('submit', () => { dirty = false; send('unsaved', { value: false }); }, true);
   read().then(prefs => {
-    const has = (list: string[]) => matchesDomain(location.href, list);
     // A stylesheet rather than inline styles: it also covers elements the page adds later,
     // and site scripts can't clobber it the way they clobber documentElement.style.
     // Inverting a site that already ships a dark theme just turns it light, so once the page
@@ -54,7 +52,7 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
     // paints its own dark theme, and it paints it after this script has already measured the
     // background and committed. Two dark modes on one page is the unreadable one.
     const formattedJson = prefs.jsonFormat && document.contentType === 'application/json';
-    if (prefs.darkEnabled && !has(prefs.darkExcluded) && !formattedJson) nativelyDark.then(cached => {
+    if (activeOn('dark', prefs, location.href) && !formattedJson) nativelyDark.then(cached => {
       const s = document.createElement('style'); s.textContent = darkCss(prefs.darkBrightness); s.disabled = cached;
       document.documentElement.append(s);
       onReady(() => {
@@ -66,11 +64,11 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
     });
     // The blocking itself happens in autoplay.content.ts, which runs in the page's world and
     // can patch HTMLMediaElement. It can't read prefs from there, so hand it the verdict.
-    if (prefs.autoplayEnabled && !has(prefs.autoplayAllowlist)) document.documentElement.dataset.daedalusAutoplay = 'block';
+    if (activeOn('autoplay', prefs, location.href)) document.documentElement.dataset.daedalusAutoplay = 'block';
     // Consent banners are injected by a third-party script that loads whenever it loads, so
     // one look after DOMContentLoaded misses most of them. Three tries and then give up —
     // a banner that took five seconds to appear was already read.
-    if (prefs.consentEnabled || has(prefs.consentDomains))
+    if (activeOn('consent', prefs, location.href))
       onReady(() => [500, 1500, 3500].forEach(ms => setTimeout(() => findReject(document)?.click(), ms)));
   });
 } });

@@ -24,7 +24,7 @@ Daedalus helps you save browser work, remove stale tabs safely, and inspect what
 |---|---|
 | **Read later** | Save a window's tabs as a named, tagged list—keeping them open or closing them. Lists show their items: open one, reorder either level, add the current tab, rename and retag in place. |
 | **Tab cleaner** | Close tabs left idle past a configurable threshold, optionally filing them into a read-later list first. Keep a domain safe by adding it to the exclusion list, and reopen anything it closed this session. |
-| **Page controls** | Dark mode with an adjustable brightness and per-domain exceptions, autoplay blocking, per-site JavaScript blocking, and GDPR banner rejection—each on its own page, with the list of sites it applies to. The four per-site switches are also in the popup, for the page you are looking at. |
+| **Page controls** | Dark mode with an adjustable brightness and per-domain exceptions, autoplay blocking, per-site JavaScript blocking, and GDPR banner rejection—each on its own page, with the list of sites it applies to. Every one overrides its global switch per site in both directions: turn it off where it is on, on where it is off. The four per-site switches are also in the popup, for the page you are looking at. |
 | **Redirect trace** | Every URL the browser visited on the way to the current page, with the status code of each hop, copyable as text. |
 | **Cookie editor** | Cookies for the domains open in the current window. Open one to edit every field it has—value, name, domain, path, SameSite, secure, httpOnly—or add and delete them, alongside JSON import and export. |
 | **YouTube unhook** | Hide the home feed, the suggestions beside the player, end screens, and Shorts—each one its own switch. Search still works. |
