@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { cookieUrl } from '../../src/cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // Left rail (or top strip when narrow) swaps one section in for another, and the choice
@@ -15,7 +15,7 @@ navItems.forEach(n => { n.onclick = () => showView(n.dataset.view!); });
 showView(localStorage.getItem('view') ?? 'lists');
 // Each pair is a button plus the domain list it adds to or removes the current host from.
 // 'dark' is an exception list (pressed = skip this site); the other two are allowlists.
-const toggles = [['dark', 'darkExcluded'], ['autoplay', 'autoplayAllowlist'], ['consent', 'consentDomains']] as const;
+const toggles = [['dark', 'darkExcluded'], ['autoplay', 'autoplayAllowlist'], ['consent', 'consentDomains'], ['js', 'jsBlocked']] as const;
 let currentCookies: chrome.cookies.Cookie[] = [];
 // The manager runs as a real side panel in Chrome, but as an ordinary tab where the
 // sidePanel API is missing (Opera) — there the active tab is this page, so skip our own
@@ -103,7 +103,7 @@ el('groups').onclick = async e => {
     case 'group-remove': if (!confirm(`Delete "${g.name}" and its ${g.tabs.length} tabs?`)) return; return commit(list.filter(x => x.id !== g.id));
   }
 };
-const labels = { darkExcluded: 'Dark mode exceptions', autoplayAllowlist: 'Autoplay allowed', consentDomains: 'Auto-reject consent' } as const;
+const labels = { darkExcluded: 'Dark mode exceptions', autoplayAllowlist: 'Autoplay allowed', consentDomains: 'Auto-reject consent', jsBlocked: 'JavaScript blocked' } as const;
 
 async function syncTarget() {
   const p = await read();
@@ -121,7 +121,10 @@ el('domains').onclick = async e => {
   const button = (e.target as HTMLElement).closest('button[data-field]') as HTMLElement | null;
   if (!button) return;
   // The chip only exists for a domain already in the list, so toggling it is the removal.
-  await toggleDomain(button.dataset.field as DomainField, button.dataset.domain!);
+  const field = button.dataset.field as DomainField;
+  await toggleDomain(field, button.dataset.domain!);
+  // The blocklist is a mirror of a browser setting, not the setting itself.
+  if (field === 'jsBlocked') await setJs(button.dataset.domain!, false);
   syncTarget();
 };
 // syncTarget reads prefs and rebuilds the domain chips, and tab events arrive in bursts —
@@ -132,12 +135,53 @@ const refresh = () => { cancelAnimationFrame(queued); queued = requestAnimationF
 chrome.tabs.onActivated.addListener(refresh);
 chrome.tabs.onUpdated.addListener((_, change, t) => { if (change.url && t.active) refresh(); });
 el('darkGlobal').onchange = () => write({ darkEnabled: el('darkGlobal').checked });
-(async () => { const p = await read(); el('darkGlobal').checked=p.darkEnabled; el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('exclude').value=p.excludedDomains.join(','); el('cleanerSave').checked=p.cleanerSave; el('cleanerList').value=p.cleanerListName; syncTarget(); render(); })();
+el('consentGlobal').onchange = () => write({ consentEnabled: el('consentGlobal').checked });
+el('unhook').onchange = () => write({ unhookEnabled: el('unhook').checked });
+el('jsonFormat').onchange = () => write({ jsonFormat: el('jsonFormat').checked });
+(async () => { const p = await read(); el('darkGlobal').checked=p.darkEnabled; el('consentGlobal').checked=p.consentEnabled; el('unhook').checked=p.unhookEnabled; el('jsonFormat').checked=p.jsonFormat; el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('exclude').value=p.excludedDomains.join(','); el('cleanerSave').checked=p.cleanerSave; el('cleanerList').value=p.cleanerListName; syncTarget(); render(); })();
 el('trace').onclick = async () => { const t = await tab(); show('Redirect chain', await send('redirects', { tabId: t.id! })); };
-for (const [id, field] of toggles) el(id).onclick = async () => { const t=await tab(); await send('toggle-pref', { field, domain: host(t) }); syncTarget(); };
-el('cookies').onclick = async () => { const t=await tab(); currentCookies = await send('cookies', { windowId: t.windowId }); show(`Cookies in this window (${currentCookies.length})`, currentCookies); };
+// Blocking JavaScript is the one toggle that changes a browser setting rather than a
+// preference our own scripts read, and the page has to be reloaded for it to mean anything.
+for (const [id, field] of toggles) el(id).onclick = async () => {
+  const t = await tab(), domain = host(t);
+  if (!domain) return;
+  if (field === 'jsBlocked') { await toggleJs(domain); if (t?.id) chrome.tabs.reload(t.id); }
+  else await send('toggle-pref', { field, domain });
+  syncTarget();
+};
+const loadCookies = async () => { const t=await tab(); currentCookies = await send('cookies', { windowId: t.windowId }); renderCookies(); return currentCookies; };
+el('cookies').onclick = async () => { await loadCookies(); show(`Cookies in this window (${currentCookies.length})`, currentCookies); };
+el('loadCookies').onclick = () => void loadCookies();
 el('ua').onchange = async () => { const t=await tab(), name=el('ua').value as keyof typeof uaProfiles; if(name) await send('ua', { windowId: t.windowId, domain: host(t), value: uaProfiles[name] }); };
 el('prefs').onclick = async () => { await write({ cleanerEnabled:el('cleaner').checked, cleanerMinutes:Number(el('minutes').value)||60, cleanerSave:el('cleanerSave').checked, cleanerListName:el('cleanerList').value.trim()||'Auto-saved', excludedDomains:el('exclude').value.split(',').map(x=>x.trim()).filter(Boolean) }); el('saved').textContent='Saved.'; setTimeout(()=>{ el('saved').textContent=''; }, 2000); };
 el('restore').onclick = async () => { const saved=((await chrome.storage.session.get(key.restore))[key.restore]??[]) as RestoreTab[]; if(saved[0]) { const t=await tab(); await send('restore', { windowId: t.windowId, tab: saved[0] }); } };
+// One row per cookie: the value is the only field worth editing in place, and everything
+// else (domain, path, flags) is what identifies the cookie you would be replacing. Edit
+// those in the JSON below instead — chrome.cookies.set with a changed key writes a second
+// cookie rather than moving the first.
+function renderCookies() {
+  const list = currentCookies.slice(0, shown);
+  el('cookieRows').innerHTML = list.map((c, i) => `<div class="cookie" data-i="${i}">
+    <div class="cookie-key"><strong>${escape(c.name)}</strong> <span class="hint">${escape(c.domain)}${escape(c.path)}</span></div>
+    <input class="cookie-value" value="${escape(c.value)}" aria-label="Value of ${escape(c.name)}" />
+    <button class="btn icon" data-act="save" aria-label="Save ${escape(c.name)}">✔</button>
+    <button class="btn icon btn-danger" data-act="delete" aria-label="Delete ${escape(c.name)}">✕</button>
+  </div>`).join('') || '<p class="hint">No cookies loaded.</p>';
+  if (currentCookies.length > shown) el('cookieRows').insertAdjacentHTML('beforeend', `<p class="hint">Showing first ${shown} of ${currentCookies.length}.</p>`);
+}
+
+el('cookieRows').onclick = async e => {
+  const button = (e.target as HTMLElement).closest('button[data-act]') as HTMLElement | null;
+  if (!button) return;
+  const row = button.closest('.cookie') as HTMLElement;
+  const c = currentCookies[Number(row.dataset.i)];
+  const url = cookieUrl(c);
+  try {
+    if (button.dataset.act === 'delete') { if (!confirm(`Delete cookie "${c.name}" for ${c.domain}?`)) return; await send('delete-cookie', { url, name: c.name }); }
+    else await send('set-cookie', { cookie: { url, name: c.name, value: (row.querySelector('.cookie-value') as HTMLInputElement).value, domain: c.hostOnly ? undefined : c.domain, path: c.path, secure: c.secure, httpOnly: c.httpOnly, sameSite: c.sameSite, expirationDate: c.expirationDate } });
+    await loadCookies();
+  } catch (err) { alert(String(err)); }
+};
+
 el('export').onclick = () => { el('json').value=JSON.stringify(currentCookies, null, 2); };
 el('import').onclick = async () => { if (!confirm('Import overwrites matching cookies in your Chrome profile. Continue?')) return; try { await send('import-cookies', { json: el('json').value }); alert('Imported.'); } catch (e) { alert(String(e)); } };

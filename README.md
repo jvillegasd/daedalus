@@ -24,8 +24,12 @@ Daedalus helps you save browser work, remove stale tabs safely, and inspect what
 |---|---|
 | **Read later** | Save a window's tabs as a named, tagged list—keeping them open or closing them. Lists show their items: open one, reorder either level, add the current tab, rename and retag in place. |
 | **Tab cleaner** | Close tabs left idle past a configurable threshold, optionally filing them into a read-later list first. |
-| **Page controls** | Dark mode across all sites with per-domain exceptions, autoplay blocking, and consent rejection where supported. |
+| **Page controls** | Dark mode across all sites with per-domain exceptions, autoplay blocking, per-site JavaScript blocking, and cookie-banner rejection. |
 | **Inspect** | Trace redirects and view cookies limited to domains open in the current window. |
+| **Cookie editor** | Edit or delete any cookie in that view in place, alongside the JSON import and export. |
+| **YouTube unhook** | Hide the home feed, the suggestions beside the player, end screens, and Shorts. Search still works. |
+| **Picture-in-Picture** | Float the largest video on the page with **Alt+P** or the page context menu. |
+| **JSON formatter** | Render `application/json` responses as indented, highlighted, readable text. A browser that ships its own JSON viewer (Opera) keeps it—Daedalus takes its theme back off the page and stands aside. |
 | **Image search** | Right-click any image to search it with Google Lens, Bing, or Yandex—the image URL is sent, never the bytes. |
 | **UA headers** | Apply built-in, session-only user-agent headers to matching tabs in one window. |
 
@@ -33,7 +37,7 @@ Everything but saving lives in the manager: the Chrome side panel, or the same p
 
 ### How two of them work
 
-**Dark mode** inverts the page with a stylesheet rather than inline styles, so elements added later are covered too. After the page renders it samples the painted background at four points—`html` and `body` are transparent on plenty of sites—and drops the inversion when the page is already dark, instead of turning it light.
+**Dark mode** inverts the page with a stylesheet rather than inline styles, so elements added later are covered too. Images, video, and CSS background images are inverted back, so only the chrome around them changes. After the page renders it samples the painted background at four points—`html` and `body` are transparent on plenty of sites—and drops the inversion when the page is already dark, instead of turning it light. That verdict is remembered per site, so a site with its own dark theme only flashes once; every load re-measures and corrects the note.
 
 **Autoplay blocking** replaces `HTMLMediaElement.prototype.play` from the page's own JS world and dispatches synthetic `play`/`playing`/`pause` events, so a player that would retry believes playback started. Pausing after the fact instead makes feed players fight back in a loop that freezes the tab. It covers iframes, and strips the `autoplay` attribute that declarative `<video autoplay>` uses without ever calling `play()`. Playback within a second of a click or keypress is always yours, so pressing play works.
 
@@ -70,7 +74,9 @@ The cleaner never closes active, pinned, audible, excluded-domain, or detected-u
 
 "Restore last closed" is session-scoped and empties when the browser does. Saving to a read-later list is the durable option.
 
-Chrome cookies are profile-wide. Daedalus filters its cookie view to domains open in the selected window, but it does not create isolated cookie jars.
+Chrome cookies are profile-wide. Daedalus filters its cookie view to domains open in the selected window, but it does not create isolated cookie jars. Editing or deleting a cookie there changes the profile's real cookie, and can sign you out.
+
+Blocking JavaScript writes a Chrome content setting for the site, so it outlives the extension being disabled. Turning it back off writes an explicit "allow" — Chrome has no way to remove a single site rule.
 
 UA profiles change the request header only; they do not emulate a device, browser engine, or viewport.
 

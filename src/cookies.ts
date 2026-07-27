@@ -1,3 +1,7 @@
+/** The URL a cookie has to be addressed by: chrome.cookies keys on a URL, not a domain. */
+export const cookieUrl = (c: { domain?: string; path?: string; secure?: boolean }) =>
+  `${c.secure ? 'https' : 'http'}://${(c.domain ?? '').replace(/^\./, '')}${c.path || '/'}`;
+
 export const cookieImport = (json: string): chrome.cookies.CookieDetails[] => {
   const data: unknown = JSON.parse(json);
   if (!Array.isArray(data)) throw new Error('Expected a JSON array of cookies.');

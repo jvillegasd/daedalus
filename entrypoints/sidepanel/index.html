@@ -23,12 +23,17 @@
       <section id="view-page" hidden>
         <h2>Page controls</h2>
         <label class="field-row"><input id="darkGlobal" type="checkbox" /> Dark mode on all sites</label>
+        <label class="field-row"><input id="consentGlobal" type="checkbox" /> Reject cookie banners everywhere</label>
+        <label class="field-row"><input id="unhook" type="checkbox" /> Unhook YouTube (feed, suggestions, Shorts)</label>
+        <label class="field-row"><input id="jsonFormat" type="checkbox" /> Format JSON responses</label>
         <div class="toggles">
           <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
           <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay</button>
           <button id="consent" class="btn" type="button" aria-pressed="false">Reject consent</button>
+          <button id="js" class="btn" type="button" aria-pressed="false">Block JavaScript here</button>
         </div>
         <p id="target" class="hint">Per-domain, applied on next reload.</p>
+        <p class="hint">Picture-in-Picture: press Alt+P, or right-click a page and choose it.</p>
         <div id="domains"></div>
         <label class="field">
           <span>User-agent override</span>
@@ -68,6 +73,10 @@
 
       <section id="view-cookies" hidden>
         <h2>Cookies</h2>
+        <div class="row">
+          <button id="loadCookies" class="btn" type="button">Load cookies in window</button>
+        </div>
+        <div id="cookieRows"></div>
         <div class="row">
           <button id="export" class="btn" type="button">Export displayed</button>
           <button id="import" class="btn btn-danger" type="button">Import JSON</button>
