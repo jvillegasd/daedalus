@@ -1,7 +1,9 @@
 import './style.css';
 import { groups, setGroups } from '../../src/storage';
 import type { SavedTab, TabGroup } from '../../src/models';
+import { escape } from '../../src/html';
 import { send } from '../../src/protocol';
+import { parseTags } from '../../src/tags';
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const status = (text: string, error = false) => { $('status').toggleAttribute('data-error', error); $('status').textContent = text; };
 
@@ -13,13 +15,12 @@ chrome.windows.getCurrent().then(w => { windowId = w.id; }, e => status(String(e
 // Tags collect as chips, same as the manager. The input element is kept across renders so
 // typing is never interrupted; only the chips before it are replaced.
 const tags: string[] = [];
-const escape = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 function renderTags() {
   $('tags').querySelectorAll('.chip').forEach(c => c.remove());
   $('tagInput').insertAdjacentHTML('beforebegin', tags.map((t, i) => `<span class="chip">${escape(t)}<button class="chip-x" data-i="${i}" aria-label="Remove ${escape(t)}">×</button></span>`).join(''));
 }
 function commitTags() {
-  for (const t of $('tagInput').value.split(',').map(x => x.trim())) if (t && !tags.includes(t)) tags.push(t);
+  tags.push(...parseTags($('tagInput').value, tags));
   $('tagInput').value = '';
   renderTags();
 }

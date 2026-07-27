@@ -1,6 +1,6 @@
 import type { RestoreTab, TabGroup } from './models';
 import type { DomainField } from './preferences';
-export type Redirect = { url: string; statusCode?: number };
+import type { Redirect } from './redirects';
 
 /**
  * Every conversation the surfaces have with the worker. A kind's request and reply are

@@ -1,9 +1,11 @@
 import { tabData } from './cleaner';
-import { cookieImport, domainOf, scopedUrls } from './domain';
+import { cookieImport, scopedUrls } from './cookies';
+import { domainOf } from './urls';
 import { key, type RestoreTab, type TabGroup } from './models';
 import type { Handlers } from './protocol';
 import { toggleDomain } from './preferences';
 import { saveGroup } from './storage';
+import { parseTags } from './tags';
 import { uaRule, uaRuleId } from './ua';
 
 /** Redirect chains, per tab, for the current worker lifetime. Filled by the webRequest listeners. */
@@ -30,7 +32,7 @@ export const handlers: Handlers = {
   'save-tabs': async (p, sender) => {
     const tabs = await chrome.tabs.query({ windowId: inWindow(p, sender) });
     const kept = tabs.filter(t => t.url && !t.url.startsWith('chrome:'));
-    const group: TabGroup = { id: crypto.randomUUID(), name: p.name || 'Read later', tags: (p.tags || '').split(',').map(x => x.trim()).filter(Boolean), tabs: kept.map(tabData), createdAt: Date.now() };
+    const group: TabGroup = { id: crypto.randomUUID(), name: p.name || 'Read later', tags: parseTags(p.tags), tabs: kept.map(tabData), createdAt: Date.now() };
     await saveGroup(group);
     if (p.close && kept.length) await chrome.tabs.remove(kept.map(t => t.id!));
     return group;
