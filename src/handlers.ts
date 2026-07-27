@@ -2,7 +2,8 @@ import { tabData } from './cleaner';
 import { cookieImport, domainOf, scopedUrls } from './domain';
 import { key, type RestoreTab, type TabGroup } from './models';
 import type { Handlers } from './protocol';
-import { prefs, saveGroup } from './storage';
+import { toggleDomain } from './preferences';
+import { saveGroup } from './storage';
 import { uaRule, uaRuleId } from './ua';
 
 /** Redirect chains, per tab, for the current worker lifetime. Filled by the webRequest listeners. */
@@ -63,13 +64,7 @@ export const handlers: Handlers = {
     for (const c of cookieImport(p.json)) await chrome.cookies.set({ ...c, url: `${c.secure ? 'https' : 'http'}://${c.domain.replace(/^\./, '')}${c.path || '/'}` });
   },
 
-  'toggle-pref': async p => {
-    const current = await prefs();
-    const list = current[p.field];
-    const next = list.includes(p.domain) ? list.filter(d => d !== p.domain) : [...list, p.domain];
-    await chrome.storage.sync.set({ prefs: { ...current, [p.field]: next } });
-    return next.includes(p.domain);
-  },
+  'toggle-pref': async p => toggleDomain(p.field, p.domain),
 
   'ua': async (p, sender) => {
     const windowId = inWindow(p, sender);

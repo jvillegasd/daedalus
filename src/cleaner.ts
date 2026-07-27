@@ -1,6 +1,7 @@
 import { matchesDomain } from './domain';
 import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from './models';
-import { groups, prefs, setGroups } from './storage';
+import { read } from './preferences';
+import { groups, setGroups } from './storage';
 
 export const tabData = (t: chrome.tabs.Tab): SavedTab => ({ url: t.url!, title: t.title || t.url!, favIconUrl: t.favIconUrl, pinned: t.pinned });
 
@@ -74,7 +75,7 @@ export const runClean = async (unsaved: number[]) => {
   // The plan handles a disabled cleaner on its own; bailing here just avoids paying for the
   // gather on every alarm. Reading every saved list is the expensive one, so it stays behind
   // the preference that is the only reason to want them.
-  const p = await prefs();
+  const p = await read();
   if (!p.cleanerEnabled) return;
   await applyClean(planClean({
     tabs: await chrome.tabs.query({}),

@@ -1,4 +1,5 @@
 import { luminance, matchesDomain } from '../src/domain';
+import { read } from '../src/preferences';
 import { send } from '../src/protocol';
 
 const invert = 'invert(1) hue-rotate(180deg)';
@@ -15,21 +16,21 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
   // the page, and the selector match is the expensive half.
   addEventListener('input', e => { if (!dirty && (e.target as Element).matches('input,textarea,[contenteditable]')) { dirty = true; send('unsaved', { value: true }); } }, true);
   addEventListener('submit', () => { dirty = false; send('unsaved', { value: false }); }, true);
-  chrome.storage.sync.get('prefs').then(({ prefs }) => {
-    const has = (list: string[] = []) => matchesDomain(location.href, list);
+  read().then(prefs => {
+    const has = (list: string[]) => matchesDomain(location.href, list);
     // A stylesheet rather than inline styles: it also covers elements the page adds later,
     // and site scripts can't clobber it the way they clobber documentElement.style.
     // Inverting a site that already ships a dark theme just turns it light, so once the page
     // has rendered, measure its real background (with our rule lifted) and only keep the
     // inversion on light pages. Toggling `disabled` rather than detaching the element keeps
     // the CSS parsed and both flips in one task, so nothing flashes and nothing re-parses.
-    if (prefs?.darkEnabled && !has(prefs?.darkExcluded)) {
+    if (prefs.darkEnabled && !has(prefs.darkExcluded)) {
       const s = document.createElement('style'); s.textContent = darkCss; document.documentElement.append(s);
       onReady(() => { s.disabled = true; s.disabled = pageLuminance() < 0.4; });
     }
     // The blocking itself happens in autoplay.content.ts, which runs in the page's world and
     // can patch HTMLMediaElement. It can't read prefs from there, so hand it the verdict.
-    if (!has(prefs?.autoplayAllowlist)) document.documentElement.dataset.daedalusAutoplay = 'block';
-    if (has(prefs?.consentDomains)) onReady(() => setTimeout(() => [...document.querySelectorAll('button,input[type=button]')].find((b: any) => /reject|decline|necessary only|essential only/i.test(b.textContent || b.value || ''))?.click(), 500));
+    if (!has(prefs.autoplayAllowlist)) document.documentElement.dataset.daedalusAutoplay = 'block';
+    if (has(prefs.consentDomains)) onReady(() => setTimeout(() => [...document.querySelectorAll('button,input[type=button]')].find((b: any) => /reject|decline|necessary only|essential only/i.test(b.textContent || b.value || ''))?.click(), 500));
   });
 } });
