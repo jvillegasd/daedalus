@@ -5,3 +5,11 @@ export type Redirect = { url: string; statusCode?: number };
  */
 export const reduceRedirect = (chain: Redirect[], url: string, statusCode?: number): Redirect[] =>
   chain.at(-1)?.url === url ? [...chain.slice(0, -1), { url, statusCode: statusCode ?? chain.at(-1)?.statusCode }] : [...chain, { url, statusCode }];
+
+/**
+ * The chain as text, for the clipboard. A hop the browser never reported a status for prints
+ * as `---` rather than being dropped: the gap is the interesting part when a trace looks
+ * wrong, and a line silently missing would hide it.
+ */
+export const redirectText = (chain: Redirect[]) =>
+  chain.map((r, i) => `${i + 1}. ${r.statusCode ?? '---'}  ${r.url}`).join('\n');

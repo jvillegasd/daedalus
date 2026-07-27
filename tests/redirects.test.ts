@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { reduceRedirect } from '../src/redirects';
+import { redirectText, reduceRedirect } from '../src/redirects';
 
 describe('redirects', () => {
   test('the status report updates the entry the request opened', () => {
@@ -15,5 +15,14 @@ describe('redirects', () => {
   test('a repeat with no status keeps the one already recorded', () => {
     const chain = reduceRedirect(reduceRedirect([], 'https://a', 301), 'https://a');
     expect(chain).toEqual([{ url: 'https://a', statusCode: 301 }]);
+  });
+
+  test('copy text numbers every hop and shows a missing status rather than dropping it', () => {
+    expect(redirectText([{ url: 'https://a', statusCode: 301 }, { url: 'https://b' }]))
+      .toBe('1. 301  https://a\n2. ---  https://b');
+  });
+
+  test('an empty chain copies as nothing, not as a stray newline', () => {
+    expect(redirectText([])).toBe('');
   });
 });

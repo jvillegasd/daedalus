@@ -22,6 +22,20 @@ header {
   border-bottom: 1px solid var(--border);
 }
 header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+#back {
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 6px;
+  margin-left: -6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+#back:hover { background: var(--surface-2); color: var(--text-primary); }
+#back[hidden] { display: none; }
 
 nav {
   grid-area: nav;
@@ -53,17 +67,43 @@ nav {
 .nav-item:hover { background: var(--surface-2); color: var(--text-primary); }
 .nav-item[aria-current='true'] { background: var(--accent-subtle); color: var(--accent); }
 .nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.nav-group {
+  padding: var(--space-3) 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.nav-group:first-child { padding-top: 4px; }
 
 main { grid-area: main; overflow-y: auto; padding: var(--space-4); }
 section { display: grid; align-content: start; gap: var(--space-3); max-width: 780px; min-width: 0; }
 section[hidden] { display: none; }  /* display:grid above would otherwise beat the UA [hidden] rule */
 h2 { font-size: 14px; font-weight: 600; margin-bottom: var(--space-1); }
+/* A button that is its own grid item would otherwise stretch the whole 780px column. Ones
+   inside .row are already sized by the flex container and are left alone. */
+section > .btn { justify-self: start; }
 
+/* The rail is only visible where there is room for it; narrow drills instead, below. */
+#back { display: none; }
+
+/* Side-panel width. Twelve features in a horizontal scroller was unusable, so narrow drills:
+   the nav IS the screen until you pick a feature, then that feature gets the full width —
+   which is the point of giving each one room for its own options. Both live in the same grid
+   area and exactly one is shown, so there is no second layout to keep in sync. */
 @media (max-width: 620px) {
-  /* three areas now, so the track list needs three rows or the nav claims the flexible one */
-  body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: 'head' 'nav' 'main'; }
-  nav { flex-direction: row; align-items: center; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border); }
-  .nav-item { width: auto; padding: 7px 12px; }
+  body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'head' 'main'; }
+  nav { grid-area: main; border-right: 0; padding: var(--space-2) var(--space-2) var(--space-4); }
+  .nav-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 12px; }
+  .nav-item::after { content: '›'; color: var(--text-tertiary); font-size: 15px; }
+  /* The menu is a list of destinations, not a current location — the rail's selected state
+     would mark a row you are not looking at. */
+  .nav-item[aria-current='true'] { background: transparent; color: var(--text-secondary); }
+  body[data-drilled] nav { display: none; }
+  body:not([data-drilled]) main { display: none; }
+  #back { display: block; }
+  #back[hidden] { display: none; }
   main { padding: var(--space-3); }
 }
 
@@ -111,7 +151,13 @@ article .name {
 article .name:hover { border-color: var(--border-hover); }
 article .name:focus { border-color: var(--accent); background: var(--surface-2); outline: none; }
 
-#domains { display: grid; gap: var(--space-3); }
+/* The current host, shown on every page that acts per-site — the thing the button below
+   applies to. It used to be one shared sentence for all four features at once. */
+.site-row { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; }
+.site-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.site-host { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--text-secondary); }
+.domains { display: grid; gap: 6px; }
+.domains > span { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 article ul { list-style: none; display: grid; gap: 2px; }
 article li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
 article li .link {
@@ -131,31 +177,83 @@ article li .link {
 }
 article li .link:hover { color: var(--accent); }
 
-#inspect {
-  max-height: 60vh;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
-  font-size: 12px;
+/* The slider is the one .field input that must not get the boxed treatment. */
+.field input[type='range'] { padding: 0; border: 0; background: none; accent-color: var(--accent); }
+.field > span output { font-weight: 400; font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
+
+/* The per-surface toggles do nothing while the master switch is off; `inert` already stops
+   them being reachable, this makes that visible rather than leaving four live-looking rows. */
+.surfaces { display: grid; gap: var(--space-2); padding-left: var(--space-3); border-left: 2px solid var(--border); }
+.surfaces.off { opacity: 0.45; }
+
+/* one input plus its Add button, on one line */
+.add-row { display: flex; gap: var(--space-2); }
+.add-row input {
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+.add-row input:focus { outline: none; border-color: var(--accent); }
+
+/* recently closed — the same list shape the saved lists use for their tabs */
+.closed { list-style: none; display: grid; gap: 2px; }
+.closed li { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.closed .link {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.closed .link:hover { color: var(--accent); }
+
+/* redirect chain — the status code is the reason to look, so it leads each row */
+.chain { list-style: none; display: grid; gap: 2px; }
+.chain:empty { display: none; }
+.chain li { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.chain li:last-child { border-bottom: 0; }
+.chain .code {
+  flex: none;
+  width: 3.2em;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+.chain .code.hop { color: var(--accent); }
+.chain .url { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text-secondary); }
+/* The final hop is the page you are on, not a redirect — it carries the weight. */
+.chain li:last-child .url { color: var(--text-primary); }
+
+/* cookie editor — collapsed to name and address, opened to every field */
+#cookieRows { display: grid; gap: var(--space-2); max-height: 50vh; overflow: auto; }
+.cookie {
+  padding: var(--space-2) var(--space-3);
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: var(--space-3);
 }
-#inspect:empty { display: none; }
+.cookie[open] { border-color: var(--border-hover); }
+.cookie > summary { cursor: pointer; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.cookie[open] > summary { margin-bottom: var(--space-2); }
+.cookie .field, .cookie .field-row, .cookie .row { margin-top: var(--space-2); }
+.cookie textarea { resize: vertical; }
 
-/* cookie editor — one row per cookie, the value the only editable field */
-#cookieRows { display: grid; gap: var(--space-2); max-height: 50vh; overflow: auto; }
-.cookie { display: grid; grid-template-columns: 1fr auto auto; gap: var(--space-1); align-items: center; }
-.cookie-key { grid-column: 1 / -1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-.cookie-value {
-  font: inherit;
-  font-size: 12px;
-  min-width: 0;
-  padding: 4px 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-1);
-  color: var(--text-primary);
-}
-.cookie-value:focus { border-color: var(--accent); outline: none; }
+details > summary { cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+details > summary:hover { color: var(--text-primary); }
+details[open] > summary { margin-bottom: var(--space-2); }
+main > section > details { display: grid; gap: var(--space-2); }

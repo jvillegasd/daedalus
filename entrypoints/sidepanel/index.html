@@ -1,16 +1,34 @@
 <!doctype html>
 <html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
   <body>
     <header>
+      <!-- Narrow only: the nav is the screen until a feature is picked, so getting back to it
+           needs a control. Wide keeps the rail visible and this stays hidden. -->
+      <button id="back" class="header-btn" type="button" aria-label="Back to menu" hidden>‹</button>
       <img src="/icons/icon-32.png" alt="" width="20" height="20" />
       <h1>Daedalus</h1>
     </header>
 
     <nav id="nav" aria-label="Sections">
+      <p class="nav-group" id="nav-group-tabs">Tabs</p>
       <button class="nav-item" data-view="lists" type="button">Read later</button>
-      <button class="nav-item" data-view="page" type="button">Page controls</button>
-      <button class="nav-item" data-view="inspector" type="button">Inspector</button>
       <button class="nav-item" data-view="cleaner" type="button">Tab cleaner</button>
+
+      <p class="nav-group">Page</p>
+      <button class="nav-item" data-view="dark" type="button">Dark mode</button>
+      <button class="nav-item" data-view="autoplay" type="button">Autoplay</button>
+      <button class="nav-item" data-view="js" type="button">JavaScript</button>
+      <button class="nav-item" data-view="consent" type="button">Cookie banners</button>
+      <button class="nav-item" data-view="youtube" type="button">YouTube</button>
+      <button class="nav-item" data-view="json" type="button">JSON</button>
+      <button class="nav-item" data-view="pip" type="button">Picture-in-Picture</button>
+      <button class="nav-item" data-view="ua" type="button">User agent</button>
+
+      <p class="nav-group">Inspect</p>
+      <button class="nav-item" data-view="redirects" type="button">Redirects</button>
       <button class="nav-item" data-view="cookies" type="button">Cookies</button>
     </nav>
 
@@ -20,21 +38,100 @@
         <div id="groups"></div>
       </section>
 
-      <section id="view-page" hidden>
-        <h2>Page controls</h2>
-        <label class="field-row"><input id="darkGlobal" type="checkbox" /> Dark mode on all sites</label>
-        <label class="field-row"><input id="consentGlobal" type="checkbox" /> Reject cookie banners everywhere</label>
-        <label class="field-row"><input id="unhook" type="checkbox" /> Unhook YouTube (feed, suggestions, Shorts)</label>
-        <label class="field-row"><input id="jsonFormat" type="checkbox" /> Format JSON responses</label>
-        <div class="toggles">
-          <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
-          <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay</button>
-          <button id="consent" class="btn" type="button" aria-pressed="false">Reject consent</button>
-          <button id="js" class="btn" type="button" aria-pressed="false">Block JavaScript here</button>
+      <section id="view-cleaner" hidden>
+        <h2>Tab cleaner</h2>
+        <label class="field-row"><input id="cleaner" type="checkbox" /> Auto-close inactive tabs</label>
+        <label class="field"><span>Inactive for (minutes)</span><input id="minutes" type="number" min="1" value="60" /></label>
+        <label class="field-row"><input id="cleanerSave" type="checkbox" /> Save closed tabs to a list first</label>
+        <label class="field"><span>List name</span><input id="cleanerList" placeholder="Auto-saved" /></label>
+        <p class="hint">Off, closed tabs are only recoverable from the list below, until the browser restarts.</p>
+        <div class="row">
+          <button id="prefs" class="btn btn-primary" type="button">Save cleaner</button>
         </div>
-        <p id="target" class="hint">Per-domain, applied on next reload.</p>
-        <p class="hint">Picture-in-Picture: press Alt+P, or right-click a page and choose it.</p>
-        <div id="domains"></div>
+        <p id="saved" role="status" class="hint"></p>
+
+        <h2>Never close these</h2>
+        <div class="add-row">
+          <input id="excludeInput" placeholder="example.com" aria-label="Domain to never close" />
+          <button id="excludeAdd" class="btn" type="button">Add</button>
+        </div>
+        <div class="domains" data-field="excludedDomains" data-label="Excluded"></div>
+
+        <h2>Recently closed</h2>
+        <p class="hint">Tabs this cleaner closed, until the browser restarts.</p>
+        <ul id="closed" class="closed"></ul>
+      </section>
+
+      <!-- The four page features below share a shape — master switch, this-site row, that
+           feature's own exception list — but not a polarity, so the verbs differ per page. -->
+      <section id="view-dark" hidden>
+        <h2>Dark mode</h2>
+        <label class="field-row"><input id="darkGlobal" type="checkbox" /> Dark mode on all sites</label>
+        <label class="field">
+          <span>Brightness <output id="brightnessOut">100%</output></span>
+          <input id="brightness" type="range" min="60" max="130" step="5" value="100" />
+        </label>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
+        <p class="hint">Applies on next reload. A site that already ships a dark theme is detected and left alone.</p>
+        <div class="domains" data-field="darkExcluded" data-label="Skipped on"></div>
+      </section>
+
+      <section id="view-autoplay" hidden>
+        <h2>Autoplay</h2>
+        <label class="field-row"><input id="autoplayGlobal" type="checkbox" /> Block autoplay everywhere</label>
+        <p class="hint">Blocked on every site except the ones listed below. Playback you start yourself always works.</p>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay</button>
+        <p class="hint">Applies on next reload. Playback you start yourself always works.</p>
+        <div class="domains" data-field="autoplayAllowlist" data-label="Allowed on"></div>
+      </section>
+
+      <section id="view-js" hidden>
+        <h2>JavaScript</h2>
+        <p class="hint">Per-site only — there is no "block everywhere", by design.</p>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="js" class="btn" type="button" aria-pressed="false">Block JavaScript here</button>
+        <p class="hint">Writes a Chrome content setting and reloads the page, so it outlives the extension being disabled.</p>
+        <div class="domains" data-field="jsBlocked" data-label="Blocked on"></div>
+      </section>
+
+      <section id="view-consent" hidden>
+        <h2>Cookie banners</h2>
+        <label class="field-row"><input id="consentGlobal" type="checkbox" /> Reject cookie banners everywhere</label>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="consent" class="btn" type="button" aria-pressed="false">Reject consent</button>
+        <p class="hint">Applies on next reload.</p>
+        <div class="domains" data-field="consentDomains" data-label="Rejecting on"></div>
+      </section>
+
+      <section id="view-youtube" hidden>
+        <h2>YouTube</h2>
+        <label class="field-row"><input id="unhook" type="checkbox" /> Unhook YouTube</label>
+        <p class="hint">Search still works — only the surfaces you pick below are hidden.</p>
+        <div id="surfaces" class="surfaces">
+          <label class="field-row"><input id="unhookFeed" type="checkbox" /> Home feed</label>
+          <label class="field-row"><input id="unhookSuggestions" type="checkbox" /> Suggestions beside the player</label>
+          <label class="field-row"><input id="unhookEndscreen" type="checkbox" /> End screens and pause overlays</label>
+          <label class="field-row"><input id="unhookShorts" type="checkbox" /> Shorts</label>
+        </div>
+      </section>
+
+      <section id="view-json" hidden>
+        <h2>JSON</h2>
+        <label class="field-row"><input id="jsonFormat" type="checkbox" /> Format JSON responses</label>
+        <p class="hint">Only <code>application/json</code> responses. A browser that ships its own JSON viewer keeps it.</p>
+      </section>
+
+      <section id="view-pip" hidden>
+        <h2>Picture-in-Picture</h2>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="pip" class="btn btn-primary" type="button">Float the largest video</button>
+        <p id="pipStatus" role="status" class="hint">Also on <kbd>Alt</kbd>+<kbd>P</kbd>, or right-click a page and choose it.</p>
+      </section>
+
+      <section id="view-ua" hidden>
+        <h2>User agent</h2>
         <label class="field">
           <span>User-agent override</span>
           <select id="ua">
@@ -43,46 +140,39 @@
             <option>Firefox Linux</option>
           </select>
         </label>
-        <p class="hint">Request headers only, for this window, until Chrome restarts.</p>
+        <p class="hint">Request headers only, for this window, until Chrome restarts. Not a device or engine emulation.</p>
       </section>
 
-      <section id="view-inspector" hidden>
-        <h2>Inspector</h2>
+      <section id="view-redirects" hidden>
+        <h2>Redirects</h2>
+        <p class="hint">Every URL the browser visited on the way to the current page. One entry means it went straight there.</p>
         <div class="row">
-          <button id="trace" class="btn" type="button">Redirect trace</button>
-          <button id="cookies" class="btn" type="button">Cookies in window</button>
+          <button id="trace" class="btn btn-primary" type="button">Trace this tab</button>
+          <button id="copyTrace" class="btn" type="button">Copy</button>
         </div>
-        <p id="caption" class="hint">Nothing inspected yet.</p>
-        <pre id="inspect"></pre>
-      </section>
-
-      <section id="view-cleaner" hidden>
-        <h2>Tab cleaner</h2>
-        <label class="field-row"><input id="cleaner" type="checkbox" /> Auto-close inactive tabs</label>
-        <label class="field"><span>Inactive for (minutes)</span><input id="minutes" type="number" min="1" value="60" /></label>
-        <label class="field"><span>Never close these domains</span><input id="exclude" placeholder="example.com, mail.google.com" /></label>
-        <label class="field-row"><input id="cleanerSave" type="checkbox" /> Save closed tabs to a list first</label>
-        <label class="field"><span>List name</span><input id="cleanerList" placeholder="Auto-saved" /></label>
-        <p class="hint">Off, tabs are only recoverable with "Restore last closed" until the browser restarts.</p>
-        <div class="row">
-          <button id="prefs" class="btn btn-primary" type="button">Save cleaner</button>
-          <button id="restore" class="btn" type="button">Restore last closed</button>
-        </div>
-        <p id="saved" role="status" class="hint"></p>
+        <ol id="chain" class="chain"></ol>
+        <p id="traceStatus" role="status" class="hint">Nothing traced yet.</p>
       </section>
 
       <section id="view-cookies" hidden>
         <h2>Cookies</h2>
+        <p class="hint">Cookies for the domains open in this window. These are your real profile cookies — editing one can sign you out.</p>
         <div class="row">
-          <button id="loadCookies" class="btn" type="button">Load cookies in window</button>
+          <button id="loadCookies" class="btn btn-primary" type="button">Load</button>
+          <button id="addCookie" class="btn" type="button">Add cookie</button>
+          <button id="deleteAll" class="btn btn-danger" type="button">Delete all shown</button>
         </div>
+        <p id="cookieScope" role="status" class="hint">Nothing loaded.</p>
         <div id="cookieRows"></div>
-        <div class="row">
-          <button id="export" class="btn" type="button">Export displayed</button>
-          <button id="import" class="btn btn-danger" type="button">Import JSON</button>
-        </div>
-        <p class="hint">Export writes whatever the Inspector last fetched. Import replaces matching cookies in your Chrome profile.</p>
-        <label class="field"><span>Cookie JSON</span><textarea id="json" rows="12"></textarea></label>
+        <details>
+          <summary>Import / export JSON</summary>
+          <div class="row">
+            <button id="export" class="btn" type="button">Export displayed</button>
+            <button id="import" class="btn btn-danger" type="button">Import JSON</button>
+          </div>
+          <p class="hint">Export writes whatever was last loaded. Import replaces matching cookies in your Chrome profile.</p>
+          <label class="field"><span>Cookie JSON</span><textarea id="json" rows="12"></textarea></label>
+        </details>
       </section>
     </main>
     <script type="module" src="./main.ts"></script>

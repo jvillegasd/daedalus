@@ -11,7 +11,12 @@ const invert = 'invert(1) hue-rotate(180deg)';
 // `svg image` is in it because that is a picture drawn without an <img>. A CSS background
 // image is not, and stays inverted on purpose: re-inverting the element that carries one
 // also re-inverts its text and every child, so a hero div would go back to dark-on-dark.
-const darkCss = `html{filter:${invert} !important;background:#fff !important}
+// Brightness rides on the same html filter, after the inversion, so it acts on the dark
+// result: below 100 dims the page, above lifts it. It is omitted entirely at 100 to keep the
+// default rule byte-identical to what it was.
+// ponytail: media inherits it through the parent filter, so dimming the page dims images
+// too. Divide it back out in the re-invert rule if anyone wants images held at full.
+const darkCss = (brightness: number) => `html{filter:${invert}${brightness === 100 ? '' : ` brightness(${brightness}%)`} !important;background:#fff !important}
 img,video,canvas,iframe,embed,svg image{filter:${invert} !important}
 input,textarea,select{background-color:inherit !important;color:inherit !important}`;
 // The verdict for a site, remembered: measuring can only happen once the page has painted,
@@ -47,7 +52,7 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
     // background and committed. Two dark modes on one page is the unreadable one.
     const formattedJson = prefs.jsonFormat && document.contentType === 'application/json';
     if (prefs.darkEnabled && !has(prefs.darkExcluded) && !formattedJson) nativelyDark.then(cached => {
-      const s = document.createElement('style'); s.textContent = darkCss; s.disabled = cached;
+      const s = document.createElement('style'); s.textContent = darkCss(prefs.darkBrightness); s.disabled = cached;
       document.documentElement.append(s);
       onReady(() => {
         s.disabled = true;  // lift our own rule, or the measurement reads it back
@@ -58,7 +63,7 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
     });
     // The blocking itself happens in autoplay.content.ts, which runs in the page's world and
     // can patch HTMLMediaElement. It can't read prefs from there, so hand it the verdict.
-    if (!has(prefs.autoplayAllowlist)) document.documentElement.dataset.daedalusAutoplay = 'block';
+    if (prefs.autoplayEnabled && !has(prefs.autoplayAllowlist)) document.documentElement.dataset.daedalusAutoplay = 'block';
     // Consent banners are injected by a third-party script that loads whenever it loads, so
     // one look after DOMContentLoaded misses most of them. Three tries and then give up —
     // a banner that took five seconds to appear was already read.
