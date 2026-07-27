@@ -4,7 +4,7 @@ import type { SavedTab, TabGroup } from '../../src/models';
 import { escape } from '../../src/html';
 import { send } from '../../src/protocol';
 import { parseTags } from '../../src/tags';
-import { activeOn, liveField, read } from '../../src/preferences';
+import { liveField, pressedOn, read } from '../../src/preferences';
 import { toggleJs } from '../../src/jsblock';
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const status = (text: string, error = false) => { $('status').toggleAttribute('data-error', error); $('status').textContent = text; };
@@ -27,9 +27,10 @@ async function syncSite() {
   const domain = hostOf(t);
   $('siteHost').textContent = domain || 'No page tab';
   const p = await read();
-  // Pressed means the feature is running on this page. It used to mean "this host is in one
-  // particular list", which said nothing at all once the global switch made that list inert.
-  for (const f of siteToggles) $(f).setAttribute('aria-pressed', String(activeOn(f, p, t?.url ?? '')));
+  // Pressed means the state the label names — see pressedOn, which is why autoplay lit reads
+  // as "autoplay plays". It used to mean "this host is in one particular list", which said
+  // nothing at all once the global switch made that list inert.
+  for (const f of siteToggles) $(f).setAttribute('aria-pressed', String(pressedOn(f, p, t?.url ?? '')));
   $('js').setAttribute('aria-pressed', String(p.jsBlocked.includes(domain)));
   for (const id of [...siteToggles, 'js']) $(id).toggleAttribute('disabled', !domain);
 }

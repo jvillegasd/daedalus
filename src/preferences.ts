@@ -34,6 +34,17 @@ export const liveField = (feature: Scoped, prefs: Preferences): DomainField =>
   prefs[scopes[feature].global] ? scopes[feature].exclude : scopes[feature].include;
 
 /**
+ * Whether a toggle should render pressed. The rule the buttons follow is "pressed means the
+ * state the label names" — and autoplay's feature is *blocking*, while its button just says
+ * "Autoplay". So a lit autoplay button means autoplay plays, the inverse of `activeOn`.
+ *
+ * The other two need no flip: "Dark" lit means dark mode runs, and GDPR's label carries the
+ * negation itself (🚫), so lit means banners are being rejected.
+ */
+export const pressedOn = (feature: Scoped, prefs: Preferences, url: string) =>
+  feature === 'autoplay' ? !activeOn(feature, prefs, url) : activeOn(feature, prefs, url);
+
+/**
  * The only door to `chrome.storage.sync`. Reading anywhere else means reading a profile that
  * has never been written as `{}` rather than as `defaults` — which the content script used to
  * do, and paid for with a `?.` on every field the type says is always there.
