@@ -15,14 +15,16 @@
       </button>
     </header>
     <!-- The manager owns the exception lists and the options; this is only the four switches
-         you reach for on the page you are looking at, one toolbar click away. -->
+         you reach for on the page you are looking at, one toolbar click away. The two that
+         block something carry 🚫, so "JS" reads as "no JavaScript here" rather than as a
+         button that might switch it on. -->
     <div class="site">
       <p class="site-host" id="siteHost"></p>
       <div class="site-toggles">
         <button id="dark" class="btn" type="button" aria-pressed="false">Dark</button>
         <button id="autoplay" class="btn" type="button" aria-pressed="false">Autoplay</button>
-        <button id="js" class="btn" type="button" aria-pressed="false">JS</button>
-        <button id="consent" class="btn" type="button" aria-pressed="false">Consent</button>
+        <button id="js" class="btn" type="button" aria-pressed="false"><span aria-hidden="true">🚫</span>JS</button>
+        <button id="consent" class="btn" type="button" aria-pressed="false"><span aria-hidden="true">🚫</span>GDPR</button>
       </div>
     </div>
     <div class="tabs">
