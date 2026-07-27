@@ -14,6 +14,8 @@ export type Protocol = {
   'redirects': { req: { tabId: number }; res: Redirect[] };
   'cookies': { req: { windowId?: number }; res: chrome.cookies.Cookie[] };
   'import-cookies': { req: { json: string }; res: void };
+  'set-cookie': { req: { cookie: chrome.cookies.SetDetails }; res: void };
+  'delete-cookie': { req: { url: string; name: string }; res: void };
   'toggle-pref': { req: { field: DomainField; domain: string }; res: boolean };
   'ua': { req: { windowId?: number; domain: string; value: string }; res: void };
 };

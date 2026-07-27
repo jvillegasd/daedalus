@@ -2,6 +2,7 @@ import { runClean } from '../src/cleaner';
 import { reduceRedirect } from '../src/redirects';
 import { domainOf } from '../src/urls';
 import { handlers, redirects, setUnsaved, unsavedTabs, uaOverrides } from '../src/handlers';
+import { enterPip } from '../src/pip';
 import { handle } from '../src/protocol';
 import { uaRule, uaRuleId } from '../src/ua';
 
@@ -16,9 +17,17 @@ export default defineBackground(() => {
       chrome.contextMenus.create({ id: 'lens', title: 'Search image with Google Lens', contexts: ['image'] });
       chrome.contextMenus.create({ id: 'bing', title: 'Search image with Bing', contexts: ['image'] });
       chrome.contextMenus.create({ id: 'yandex', title: 'Search image with Yandex', contexts: ['image'] });
+      chrome.contextMenus.create({ id: 'pip', title: 'Picture-in-Picture', contexts: ['video', 'page'] });
     });
   });
+  // allFrames because the video is as likely to be in an embed as in the top document; the
+  // frames without one do nothing.
+  const pip = (tabId: number) => chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: enterPip, world: 'MAIN' }).catch(() => {});
+  chrome.commands.onCommand.addListener(async (command, tab) => {
+    if (command === 'pip' && tab?.id) await pip(tab.id);
+  });
   chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === 'pip') { if (tab?.id) pip(tab.id); return; }
     if (!info.srcUrl || !tab?.windowId) return;
     // data: and blob: images have no URL a provider could fetch. Say so briefly rather than
     // leaving the badge stuck on the tab forever.
