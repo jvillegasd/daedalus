@@ -177,6 +177,15 @@ article li .link {
 }
 article li .link:hover { color: var(--accent); }
 
+/* The slider is the one .field input that must not get the boxed treatment. */
+.field input[type='range'] { padding: 0; border: 0; background: none; accent-color: var(--accent); }
+.field > span output { font-weight: 400; font-variant-numeric: tabular-nums; color: var(--text-tertiary); }
+
+/* The per-surface toggles do nothing while the master switch is off; `inert` already stops
+   them being reachable, this makes that visible rather than leaving four live-looking rows. */
+.surfaces { display: grid; gap: var(--space-2); padding-left: var(--space-3); border-left: 2px solid var(--border); }
+.surfaces.off { opacity: 0.45; }
+
 /* one input plus its Add button, on one line */
 .add-row { display: flex; gap: var(--space-2); }
 .add-row input {

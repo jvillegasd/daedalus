@@ -67,6 +67,10 @@
       <section id="view-dark" hidden>
         <h2>Dark mode</h2>
         <label class="field-row"><input id="darkGlobal" type="checkbox" /> Dark mode on all sites</label>
+        <label class="field">
+          <span>Brightness <output id="brightnessOut">100%</output></span>
+          <input id="brightness" type="range" min="60" max="130" step="5" value="100" />
+        </label>
         <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
         <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
         <p class="hint">Applies on next reload. A site that already ships a dark theme is detected and left alone.</p>
@@ -75,7 +79,8 @@
 
       <section id="view-autoplay" hidden>
         <h2>Autoplay</h2>
-        <p class="hint">Autoplay is blocked on every site except the ones listed below.</p>
+        <label class="field-row"><input id="autoplayGlobal" type="checkbox" /> Block autoplay everywhere</label>
+        <p class="hint">Blocked on every site except the ones listed below. Playback you start yourself always works.</p>
         <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
         <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay</button>
         <p class="hint">Applies on next reload. Playback you start yourself always works.</p>
@@ -102,8 +107,14 @@
 
       <section id="view-youtube" hidden>
         <h2>YouTube</h2>
-        <label class="field-row"><input id="unhook" type="checkbox" /> Unhook YouTube (feed, suggestions, Shorts)</label>
-        <p class="hint">Search still works — only the algorithmic surfaces are hidden.</p>
+        <label class="field-row"><input id="unhook" type="checkbox" /> Unhook YouTube</label>
+        <p class="hint">Search still works — only the surfaces you pick below are hidden.</p>
+        <div id="surfaces" class="surfaces">
+          <label class="field-row"><input id="unhookFeed" type="checkbox" /> Home feed</label>
+          <label class="field-row"><input id="unhookSuggestions" type="checkbox" /> Suggestions beside the player</label>
+          <label class="field-row"><input id="unhookEndscreen" type="checkbox" /> End screens and pause overlays</label>
+          <label class="field-row"><input id="unhookShorts" type="checkbox" /> Shorts</label>
+        </div>
       </section>
 
       <section id="view-json" hidden>
@@ -114,7 +125,9 @@
 
       <section id="view-pip" hidden>
         <h2>Picture-in-Picture</h2>
-        <p class="hint">Float the largest video on the page: press <kbd>Alt</kbd>+<kbd>P</kbd>, or right-click the page and choose it.</p>
+        <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
+        <button id="pip" class="btn btn-primary" type="button">Float the largest video</button>
+        <p id="pipStatus" role="status" class="hint">Also on <kbd>Alt</kbd>+<kbd>P</kbd>, or right-click a page and choose it.</p>
       </section>
 
       <section id="view-ua" hidden>

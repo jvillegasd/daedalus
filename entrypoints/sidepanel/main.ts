@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { read, toggleDomain, write, type DomainField } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { move } from '../../src/urls'; import { escape } from '../../src/html'; import { parseTags } from '../../src/tags'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -138,11 +138,38 @@ let queued = 0;
 const refresh = () => { cancelAnimationFrame(queued); queued = requestAnimationFrame(() => syncTarget()); };
 chrome.tabs.onActivated.addListener(refresh);
 chrome.tabs.onUpdated.addListener((_, change, t) => { if (change.url && t.active) refresh(); });
-el('darkGlobal').onchange = () => write({ darkEnabled: el('darkGlobal').checked });
-el('consentGlobal').onchange = () => write({ consentEnabled: el('consentGlobal').checked });
-el('unhook').onchange = () => write({ unhookEnabled: el('unhook').checked });
-el('jsonFormat').onchange = () => write({ jsonFormat: el('jsonFormat').checked });
-(async () => { const p = await read(); el('darkGlobal').checked=p.darkEnabled; el('consentGlobal').checked=p.consentEnabled; el('unhook').checked=p.unhookEnabled; el('jsonFormat').checked=p.jsonFormat; el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('cleanerSave').checked=p.cleanerSave; el('cleanerList').value=p.cleanerListName; syncTarget(); renderClosed(); render(); })();
+// Every checkbox that is simply one boolean preference, by matching id.
+const switches = ['darkGlobal:darkEnabled', 'autoplayGlobal:autoplayEnabled', 'consentGlobal:consentEnabled', 'unhook:unhookEnabled', 'jsonFormat:jsonFormat',
+  'unhookFeed:unhookFeed', 'unhookSuggestions:unhookSuggestions', 'unhookEndscreen:unhookEndscreen', 'unhookShorts:unhookShorts'] as const;
+for (const pair of switches) {
+  const [id, field] = pair.split(':') as [string, keyof Preferences];
+  el(id).onchange = () => { write({ [field]: el(id).checked }); if (id === 'unhook') syncSurfaces(); };
+}
+// The four surfaces do nothing while the master is off, so say so rather than leaving four
+// live-looking checkboxes that change nothing.
+const syncSurfaces = () => { el('surfaces').toggleAttribute('inert', !el('unhook').checked); el('surfaces').classList.toggle('off', !el('unhook').checked); };
+
+const showBrightness = (v: string) => { el('brightnessOut').textContent = `${v}%`; };
+el('brightness').oninput = () => showBrightness(el('brightness').value);
+// Committed on release, not per pixel of drag: each write is a chrome.storage.sync round trip.
+el('brightness').onchange = () => write({ darkBrightness: Number(el('brightness').value) });
+
+(async () => {
+  const p = await read();
+  for (const pair of switches) { const [id, field] = pair.split(':') as [string, keyof Preferences]; el(id).checked = p[field] as boolean; }
+  el('brightness').value = String(p.darkBrightness); showBrightness(el('brightness').value);
+  el('cleaner').checked=p.cleanerEnabled; el('minutes').value=String(p.cleanerMinutes); el('cleanerSave').checked=p.cleanerSave; el('cleanerList').value=p.cleanerListName;
+  syncSurfaces(); syncTarget(); renderClosed(); render();
+})();
+
+// Called straight from the panel rather than through the worker: requestPictureInPicture
+// needs a user gesture, and a message hop would spend it before the injection happens.
+el('pip').onclick = async () => {
+  const t = await tab();
+  if (!t?.id) return;
+  await chrome.scripting.executeScript({ target: { tabId: t.id, allFrames: true }, func: enterPip, world: 'MAIN' }).catch(() => {});
+  el('pipStatus').textContent = 'Asked the tab to float its largest video. Nothing happened? The page may have no playable video.';
+};
 
 // The chain, rendered rather than dumped: a status code beside each hop is the whole reason
 // to look, and it was buried in JSON. `chain` is kept so Copy has something to format.

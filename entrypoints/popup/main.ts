@@ -4,6 +4,8 @@ import type { SavedTab, TabGroup } from '../../src/models';
 import { escape } from '../../src/html';
 import { send } from '../../src/protocol';
 import { parseTags } from '../../src/tags';
+import { read } from '../../src/preferences';
+import { toggleJs } from '../../src/jsblock';
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const status = (text: string, error = false) => { $('status').toggleAttribute('data-error', error); $('status').textContent = text; };
 
@@ -11,6 +13,34 @@ const status = (text: string, error = false) => { $('status').toggleAttribute('d
 // unbroken user gesture — awaiting inside the click handler drops the gesture.
 let windowId: number | undefined;
 chrome.windows.getCurrent().then(w => { windowId = w.id; }, e => status(String(e), true));
+
+// The four per-site switches, on the page you are looking at. The manager owns everything
+// else about them — the lists, the master switches, the options — so this shares its rule
+// (toggleDomain) rather than a second copy of it, and pressed means the same thing here:
+// the current host is in that field's list.
+const siteToggles = [['dark', 'darkExcluded'], ['autoplay', 'autoplayAllowlist'], ['js', 'jsBlocked'], ['consent', 'consentDomains']] as const;
+const activeTab = async () => (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+const hostOf = (t?: chrome.tabs.Tab) => { try { return new URL(t!.url!).hostname; } catch { return ''; } };
+
+async function syncSite() {
+  const domain = hostOf(await activeTab());
+  $('siteHost').textContent = domain || 'No page tab';
+  const p = await read();
+  for (const [id, field] of siteToggles) {
+    $(id).setAttribute('aria-pressed', String(p[field].includes(domain)));
+    $(id).toggleAttribute('disabled', !domain);
+  }
+}
+for (const [id, field] of siteToggles) $(id).onclick = async () => {
+  const t = await activeTab(), domain = hostOf(t);
+  if (!domain) return;
+  // Blocking JS writes a Chrome content setting rather than one of our preferences, and the
+  // page has to reload for it to mean anything.
+  if (field === 'jsBlocked') { await toggleJs(domain); if (t?.id) chrome.tabs.reload(t.id); }
+  else await send('toggle-pref', { field, domain });
+  syncSite();
+};
+syncSite();
 
 // Tags collect as chips, same as the manager. The input element is kept across renders so
 // typing is never interrupted; only the chips before it are replaced.
