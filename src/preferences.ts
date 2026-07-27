@@ -1,7 +1,37 @@
 import { defaults, key, type Preferences } from './models';
+import { matchesDomain } from './urls';
 
 /** The preferences that are a list of domains: allowlists, exception lists, and one blocklist. */
-export type DomainField = 'darkExcluded' | 'autoplayAllowlist' | 'consentDomains' | 'jsBlocked' | 'excludedDomains';
+export type DomainField = 'darkDomains' | 'darkExcluded' | 'autoplayDomains' | 'autoplayAllowlist' | 'consentDomains' | 'consentExcluded' | 'jsBlocked' | 'excludedDomains';
+
+/** The three features that resolve as "a global default, overridden per site in both directions". */
+export type Scoped = 'dark' | 'autoplay' | 'consent';
+export const scopes = {
+  dark: { global: 'darkEnabled', include: 'darkDomains', exclude: 'darkExcluded' },
+  autoplay: { global: 'autoplayEnabled', include: 'autoplayDomains', exclude: 'autoplayAllowlist' },
+  consent: { global: 'consentEnabled', include: 'consentDomains', exclude: 'consentExcluded' },
+} as const satisfies Record<Scoped, { global: keyof Preferences; include: DomainField; exclude: DomainField }>;
+
+/**
+ * Whether the feature actually runs on this URL. The one thing a per-site button's pressed
+ * state is allowed to mean — anything else and it reports a state the page does not have.
+ *
+ * Both lists default to empty, so this reproduces exactly what the three hand-written rules
+ * did before it replaced them: with the global on, everything but the exclusions; with it
+ * off, only the inclusions. No stored preference changes meaning.
+ */
+export const activeOn = (feature: Scoped, prefs: Preferences, url: string) => {
+  const s = scopes[feature];
+  return prefs[s.global] ? !matchesDomain(url, prefs[s.exclude]) : matchesDomain(url, prefs[s.include]);
+};
+
+/**
+ * The list a click acts on: with the global on you are carving an exception out of it, with
+ * it off you are opting one site in. Toggling the other list would be writing to something
+ * nothing reads.
+ */
+export const liveField = (feature: Scoped, prefs: Preferences): DomainField =>
+  prefs[scopes[feature].global] ? scopes[feature].exclude : scopes[feature].include;
 
 /**
  * The only door to `chrome.storage.sync`. Reading anywhere else means reading a profile that
