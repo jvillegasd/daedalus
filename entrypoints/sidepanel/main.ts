@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -24,11 +24,6 @@ showView(localStorage.getItem('view') ?? 'lists', localStorage.getItem('drilled'
 // depends on the global switch. JavaScript has no global, so it is always its own list.
 const toggles = ['dark', 'autoplay', 'consent'] as const;
 let currentCookies: chrome.cookies.Cookie[] = [];
-// The manager runs as a real side panel in Chrome, but as an ordinary tab where the
-// sidePanel API is missing (Opera) — there the active tab is this page, so skip our own
-// pages and fall back to the most recently used tab.
-async function tab() { const tabs = (await chrome.tabs.query({ currentWindow: true })).filter(t => t.url && !t.url.startsWith(location.origin)); return tabs.find(t => t.active) ?? tabs.sort((a, b) => ((b as { lastAccessed?: number }).lastAccessed ?? 0) - ((a as { lastAccessed?: number }).lastAccessed ?? 0))[0]; }
-const host = (t?: chrome.tabs.Tab) => { try { return new URL(t!.url!).hostname; } catch { return ''; } };
 // Rendering a few thousand cookie rows is a visible freeze, and nobody scrolls that far.
 // Export still writes the full set.
 const shown = 200;
@@ -238,21 +233,9 @@ el('copyTrace').onclick = async () => {
   await navigator.clipboard.writeText(redirectText(chain));
   el('traceStatus').textContent = 'Copied.';
 };
-for (const f of toggles) el(f).onclick = async () => {
-  const domain = host(await tab());
-  if (!domain) return;
-  await send('toggle-pref', { field: liveField(f, await read()), domain });
-  syncTarget();
-};
-// Blocking JavaScript is the one toggle that changes a browser setting rather than a
-// preference our own scripts read, and the page has to be reloaded for it to mean anything.
-el('js').onclick = async () => {
-  const t = await tab(), domain = host(t);
-  if (!domain) return;
-  await toggleJs(domain);
-  if (t?.id) chrome.tabs.reload(t.id);
-  syncTarget();
-};
+// All four go through `toggleSite`, including the JavaScript one, which is the only toggle
+// that writes a browser setting rather than a preference and so has to reload the page.
+for (const f of [...toggles, 'js'] as const) el(f).onclick = async () => { if (await toggleSite(f)) syncTarget(); };
 const loadCookies = async () => {
   const t = await tab();
   currentCookies = await send('cookies', { windowId: t.windowId });

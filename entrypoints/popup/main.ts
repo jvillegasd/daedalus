@@ -5,8 +5,8 @@ import { apply } from '../../src/lists';
 import { escape } from '../../src/html';
 import { send } from '../../src/protocol';
 import { parseTags } from '../../src/tags';
-import { liveField, pressedOn, read } from '../../src/preferences';
-import { toggleJs } from '../../src/jsblock';
+import { pressedOn, read } from '../../src/preferences';
+import { targetHost, targetTab, toggleSite } from '../../src/surface';
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const status = (text: string, error = false) => { $('status').toggleAttribute('data-error', error); $('status').textContent = text; };
 
@@ -20,8 +20,9 @@ chrome.windows.getCurrent().then(w => { windowId = w.id; }, e => status(String(e
 // (toggleDomain) rather than a second copy of it, and pressed means the same thing here:
 // the current host is in that field's list.
 const siteToggles = ['dark', 'autoplay', 'consent'] as const;
-const activeTab = async () => (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
-const hostOf = (t?: chrome.tabs.Tab) => { try { return new URL(t!.url!).hostname; } catch { return ''; } };
+// Shared with the manager: in a popup the active tab is always the page, so the extra filter
+// and fallback `targetTab` carries for the manager's tab mode never fire here.
+const activeTab = targetTab, hostOf = targetHost;
 
 async function syncSite() {
   const t = await activeTab();
@@ -35,21 +36,7 @@ async function syncSite() {
   $('js').setAttribute('aria-pressed', String(p.jsBlocked.includes(domain)));
   for (const id of [...siteToggles, 'js']) $(id).toggleAttribute('disabled', !domain);
 }
-for (const f of siteToggles) $(f).onclick = async () => {
-  const domain = hostOf(await activeTab());
-  if (!domain) return;
-  await send('toggle-pref', { field: liveField(f, await read()), domain });
-  syncSite();
-};
-// Blocking JS writes a Chrome content setting rather than one of our preferences, and the
-// page has to reload for it to mean anything.
-$('js').onclick = async () => {
-  const t = await activeTab(), domain = hostOf(t);
-  if (!domain) return;
-  await toggleJs(domain);
-  if (t?.id) chrome.tabs.reload(t.id);
-  syncSite();
-};
+for (const f of [...siteToggles, 'js'] as const) $(f).onclick = async () => { if (await toggleSite(f)) syncSite(); };
 syncSite();
 
 // Tags collect as chips, same as the manager. The input element is kept across renders so

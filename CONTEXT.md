@@ -33,6 +33,10 @@ am acting on" has to skip our own pages.
 **Popup** — `entrypoints/popup/`, the toolbar surface: saving the current window, the four
 per-site switches, and a read-mostly view of the saved lists.
 
+**Target tab** — the page tab a surface is acting on, which is not always the active tab: the
+manager can itself be the active tab in a browser without the sidePanel API. `targetTab` in
+`src/surface.ts`, and the reason a surface never calls `chrome.tabs.query` for this directly.
+
 **Protocol** — the typed set of conversations between a surface and the worker,
 `src/protocol.ts`. A kind's request and reply are declared together; `send` throws on a
 worker-side failure so callers use try/catch.
