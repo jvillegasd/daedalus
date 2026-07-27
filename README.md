@@ -28,7 +28,7 @@ Daedalus helps you save browser work, remove stale tabs safely, and inspect what
 | **Redirect trace** | Every URL the browser visited on the way to the current page, with the status code of each hop, copyable as text. |
 | **Cookie editor** | Cookies for the domains open in the current window. Open one to edit every field it has—value, name, domain, path, SameSite, secure, httpOnly—or add and delete them, alongside JSON import and export. |
 | **YouTube unhook** | Hide the home feed, the suggestions beside the player, end screens, and Shorts—each one its own switch. Search still works. |
-| **Picture-in-Picture** | Float the largest video on the page from the manager, with **Alt+P**, or from the page context menu. |
+| **Picture-in-Picture** | Float the largest video on the page from the manager, with **Alt+P**, or from the page context menu. A site that opts its viewers out of PiP is overridden. When nothing floats, the manager says why and the two menu paths badge the toolbar icon. |
 | **JSON formatter** | Render `application/json` responses as indented, highlighted, readable text. A browser that ships its own JSON viewer (Opera) keeps it—Daedalus takes its theme back off the page and stands aside. |
 | **Image search** | Right-click any image to search it with Google Lens, Bing, or Yandex—the image URL is sent, never the bytes. |
 | **UA headers** | Apply built-in, session-only user-agent headers to matching tabs in one window. |
