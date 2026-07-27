@@ -1,6 +1,7 @@
 import './style.css';
 import { groups, setGroups } from '../../src/storage';
 import type { SavedTab, TabGroup } from '../../src/models';
+import { send } from '../../src/protocol';
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const status = (text: string, error = false) => { $('status').toggleAttribute('data-error', error); $('status').textContent = text; };
 
@@ -34,10 +35,8 @@ const save = (close: boolean) => async () => {
   try {
     commitTags();  // a tag typed but not yet entered still counts
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const r = await chrome.runtime.sendMessage({ type: 'save-tabs', windowId: tab.windowId, name: $('name').value, tags: tags.join(','), close });
-    if (!r) throw new Error('No response from background worker.');
-    if (r.error) return status(r.error, true);
-    status(`Saved ${r.tabs.length} tabs.`);
+    const group = await send('save-tabs', { windowId: tab.windowId, name: $('name').value, tags: tags.join(','), close });
+    status(`Saved ${group.tabs.length} tabs.`);
     await renderGroups();
     showTab('lists');
   } catch (e) { status(String(e), true); }
