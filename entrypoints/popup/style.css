@@ -54,7 +54,10 @@ header h1 { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; flex: 1;
   color: var(--text-tertiary);
 }
 .site-toggles { display: flex; gap: 6px; }
-.site-toggles .btn { flex: 1; padding: 6px 4px; font-size: 12px; text-align: center; }
+/* The emote is its own element so gap can space it — a plain space between an emoji and a
+   word collapses to almost nothing. It is aria-hidden: aria-pressed already says whether the
+   thing is blocked, and "prohibited sign J S" reads worse than "J S, pressed". */
+.site-toggles .btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 4px; font-size: 12px; }
 
 .tabs {
   padding: 14px var(--space-4) 0;

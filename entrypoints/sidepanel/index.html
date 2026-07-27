@@ -21,7 +21,7 @@
       <button class="nav-item" data-view="dark" type="button">Dark mode</button>
       <button class="nav-item" data-view="autoplay" type="button">Autoplay</button>
       <button class="nav-item" data-view="js" type="button">JavaScript</button>
-      <button class="nav-item" data-view="consent" type="button">Cookie banners</button>
+      <button class="nav-item" data-view="consent" type="button">GDPR banners</button>
       <button class="nav-item" data-view="youtube" type="button">YouTube</button>
       <button class="nav-item" data-view="json" type="button">JSON</button>
       <button class="nav-item" data-view="pip" type="button">Picture-in-Picture</button>
@@ -69,7 +69,7 @@
         <label class="field-row"><input id="darkGlobal" type="checkbox" /> Dark mode on all sites</label>
         <label class="field">
           <span>Brightness <output id="brightnessOut">100%</output></span>
-          <input id="brightness" type="range" min="60" max="130" step="5" value="100" />
+          <input id="brightness" type="range" min="60" max="100" step="5" value="100" />
         </label>
         <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
         <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
@@ -97,10 +97,10 @@
       </section>
 
       <section id="view-consent" hidden>
-        <h2>Cookie banners</h2>
-        <label class="field-row"><input id="consentGlobal" type="checkbox" /> Reject cookie banners everywhere</label>
+        <h2>GDPR banners</h2>
+        <label class="field-row"><input id="consentGlobal" type="checkbox" /> Reject GDPR banners everywhere</label>
         <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
-        <button id="consent" class="btn" type="button" aria-pressed="false">Reject consent</button>
+        <button id="consent" class="btn" type="button" aria-pressed="false">Reject GDPR banners here</button>
         <p class="hint">Applies on next reload.</p>
         <div class="domains" data-field="consentDomains" data-label="Rejecting on"></div>
       </section>

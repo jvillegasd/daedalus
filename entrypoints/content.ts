@@ -12,7 +12,10 @@ const invert = 'invert(1) hue-rotate(180deg)';
 // image is not, and stays inverted on purpose: re-inverting the element that carries one
 // also re-inverts its text and every child, so a hero div would go back to dark-on-dark.
 // Brightness rides on the same html filter, after the inversion, so it acts on the dark
-// result: below 100 dims the page, above lifts it. It is omitted entirely at 100 to keep the
+// result. It only ever dims: `brightness()` is a multiplier and an inverted white page is
+// rgb(0,0,0), so no value can lift the background off black, and inverted black text is
+// already at 255 and clips. Above 100 the only thing that visibly changes is images being
+// blown out, which is why the slider stops there. It is omitted entirely at 100 to keep the
 // default rule byte-identical to what it was.
 // ponytail: media inherits it through the parent filter, so dimming the page dims images
 // too. Divide it back out in the re-invert rule if anyone wants images held at full.
