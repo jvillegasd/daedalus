@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { enterPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
+import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { pipMessage, requestPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { cookieDetails, cookieMoved, cookieUrl, type CookieEdit } from '../../src/cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -209,13 +209,7 @@ el('brightness').onchange = () => write({ darkBrightness: Number(el('brightness'
 el('pip').onclick = async () => {
   const t = await tab();
   if (!t?.id) return;
-  const out = await chrome.scripting
-    .executeScript({ target: { tabId: t.id, allFrames: true }, func: enterPip, world: 'MAIN' })
-    .catch((e: Error) => [{ result: e.message }]);
-  const reasons = out.map(r => r.result).filter(Boolean) as string[];
-  el('pipStatus').textContent = reasons.includes('ok') || reasons.includes('closed')
-    ? 'Done.'
-    : reasons.find(r => r !== 'no video in this frame') ?? 'No video on this page.';
+  el('pipStatus').textContent = pipMessage(await requestPip(t.id));
 };
 
 // The chain, rendered rather than dumped: a status code beside each hop is the whole reason

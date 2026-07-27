@@ -2,7 +2,7 @@ import { runClean } from '../src/cleaner';
 import { reduceRedirect } from '../src/redirects';
 import { domainOf } from '../src/urls';
 import { handlers, redirects, setUnsaved, unsavedTabs, uaOverrides } from '../src/handlers';
-import { enterPip } from '../src/pip';
+import { pipFailed, requestPip } from '../src/pip';
 import { handle } from '../src/protocol';
 import { uaRule, uaRuleId } from '../src/ua';
 
@@ -20,9 +20,15 @@ export default defineBackground(() => {
       chrome.contextMenus.create({ id: 'pip', title: 'Picture-in-Picture', contexts: ['video', 'page'] });
     });
   });
-  // allFrames because the video is as likely to be in an embed as in the top document; the
-  // frames without one do nothing.
-  const pip = (tabId: number) => chrome.scripting.executeScript({ target: { tabId, allFrames: true }, func: enterPip, world: 'MAIN' }).catch(() => {});
+  // Neither of these paths has anywhere to print a sentence, so a failure is a badge for a
+  // few seconds — the same way an image with no fetchable URL says so below. Success needs no
+  // announcement: the floating window is the announcement.
+  const flash = (tabId: number | undefined, text: string) => {
+    if (tabId === undefined) return;
+    chrome.action.setBadgeText({ tabId, text });
+    setTimeout(() => chrome.action.setBadgeText({ tabId, text: '' }), 3000);
+  };
+  const pip = async (tabId: number) => { if (pipFailed(await requestPip(tabId))) flash(tabId, 'PiP'); };
   chrome.commands.onCommand.addListener(async (command, tab) => {
     if (command === 'pip' && tab?.id) await pip(tab.id);
   });
@@ -31,7 +37,7 @@ export default defineBackground(() => {
     if (!info.srcUrl || !tab?.windowId) return;
     // data: and blob: images have no URL a provider could fetch. Say so briefly rather than
     // leaving the badge stuck on the tab forever.
-    if (!/^https?:/i.test(info.srcUrl)) { chrome.action.setBadgeText({ tabId: tab.id, text: 'URL' }); setTimeout(() => chrome.action.setBadgeText({ tabId: tab.id, text: '' }), 3000); return; }
+    if (!/^https?:/i.test(info.srcUrl)) { flash(tab.id, 'URL'); return; }
     const map: Record<string, string> = { lens: `https://lens.google.com/uploadbyurl?url=${encodeURIComponent(info.srcUrl)}`, bing: `https://www.bing.com/images/searchbyimage?cbir=sbi&imgurl=${encodeURIComponent(info.srcUrl)}`, yandex: `https://yandex.com/images/search?rpt=imageview&url=${encodeURIComponent(info.srcUrl)}` };
     chrome.tabs.create({ windowId: tab.windowId, url: map[info.menuItemId] });
   });
