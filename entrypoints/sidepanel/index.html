@@ -74,7 +74,8 @@
         <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
         <button id="dark" class="btn" type="button" aria-pressed="false">Skip dark mode here</button>
         <p class="hint">Applies on next reload. A site that already ships a dark theme is detected and left alone.</p>
-        <div class="domains" data-field="darkExcluded" data-label="Skipped on"></div>
+        <div class="domains" data-live="dark" data-field="darkExcluded" data-label="Skipped on"></div>
+        <div class="domains" data-live="dark" data-field="darkDomains" data-label="Forced on"></div>
       </section>
 
       <section id="view-autoplay" hidden>
@@ -82,9 +83,10 @@
         <label class="field-row"><input id="autoplayGlobal" type="checkbox" /> Block autoplay everywhere</label>
         <p class="hint">Blocked on every site except the ones listed below. Playback you start yourself always works.</p>
         <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
-        <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay</button>
+        <button id="autoplay" class="btn" type="button" aria-pressed="false">Allow autoplay here</button>
         <p class="hint">Applies on next reload. Playback you start yourself always works.</p>
-        <div class="domains" data-field="autoplayAllowlist" data-label="Allowed on"></div>
+        <div class="domains" data-live="autoplay" data-field="autoplayAllowlist" data-label="Allowed on"></div>
+        <div class="domains" data-live="autoplay" data-field="autoplayDomains" data-label="Blocked on"></div>
       </section>
 
       <section id="view-js" hidden>
@@ -102,7 +104,8 @@
         <p class="site-row"><span class="site-label">This site</span> <span class="site-host" data-host></span></p>
         <button id="consent" class="btn" type="button" aria-pressed="false">Reject GDPR banners here</button>
         <p class="hint">Applies on next reload.</p>
-        <div class="domains" data-field="consentDomains" data-label="Rejecting on"></div>
+        <div class="domains" data-live="consent" data-field="consentExcluded" data-label="Left alone on"></div>
+        <div class="domains" data-live="consent" data-field="consentDomains" data-label="Rejecting on"></div>
       </section>
 
       <section id="view-youtube" hidden>

@@ -1,6 +1,5 @@
 import { highlight } from '../src/json';
-import { read } from '../src/preferences';
-import { matchesDomain } from '../src/urls';
+import { activeOn, read } from '../src/preferences';
 
 // One palette written once: light-dark() picks the arm from the root's color-scheme, so
 // following the OS is the default and forcing dark is a single property to set below.
@@ -30,7 +29,7 @@ export default defineContentScript({
 
     // Dark mode skips JSON documents rather than inverting this page, so honour it here
     // instead — otherwise turning dark mode on would leave one page light.
-    if (prefs.darkEnabled && !matchesDomain(location.href, prefs.darkExcluded)) document.documentElement.style.colorScheme = 'dark';
+    if (activeOn('dark', prefs, location.href)) document.documentElement.style.colorScheme = 'dark';
     const style = document.createElement('style');
     style.textContent = css;
     const pre = document.createElement('pre');

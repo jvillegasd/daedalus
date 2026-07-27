@@ -159,6 +159,10 @@ article .name:focus { border-color: var(--accent); background: var(--surface-2);
 .site-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .site-host { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--text-secondary); }
 .domains { display: grid; gap: 6px; }
+/* Shown only when it still holds entries the global switch is currently ignoring, so they
+   can be seen and removed rather than stranded. */
+.domains.inert { opacity: 0.6; }
+.domains[hidden] { display: none; }
 .domains > span { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 article ul { list-style: none; display: grid; gap: 2px; }
 article li { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
