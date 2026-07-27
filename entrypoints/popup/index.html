@@ -4,20 +4,45 @@
     <header>
       <img src="/icons/icon-32.png" alt="" width="20" height="20" />
       <h1>Daedalus</h1>
-      <button id="open" class="btn" type="button">Manager</button>
+      <button id="open" class="header-btn" type="button" title="Settings" aria-label="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
     </header>
+    <div class="tabs">
+      <div class="seg-tabs" role="tablist">
+        <button class="seg-tab" role="tab" data-tab="save" aria-selected="true" type="button">Save</button>
+        <button class="seg-tab" role="tab" data-tab="lists" aria-selected="false" type="button">Lists</button>
+      </div>
+    </div>
     <main>
-      <label class="field"><span>Group name</span><input id="name" placeholder="Read later" /></label>
-      <div class="field">
-        <span>Tags</span>
-        <div id="tags" class="tags"><input id="tagInput" class="tag-add" placeholder="+ tag" aria-label="Add tag" /></div>
+      <div id="tab-save" role="tabpanel">
+        <label class="field"><span>Group name</span><input id="name" placeholder="Read later" /></label>
+        <div class="field">
+          <span>Tags</span>
+          <div id="tags" class="tags"><input id="tagInput" class="tag-add" placeholder="+ tag" aria-label="Add tag" /></div>
+        </div>
+        <div class="row">
+          <button id="save" class="btn btn-primary" type="button">Save tabs</button>
+          <button id="saveClose" class="btn" type="button">Save &amp; close</button>
+        </div>
       </div>
-      <div class="row">
-        <button id="save" class="btn btn-primary" type="button">Save tabs</button>
-        <button id="saveClose" class="btn" type="button">Save &amp; close</button>
+      <div id="tab-lists" role="tabpanel" hidden>
+        <div id="groups"></div>
       </div>
+      <!-- Outside both panes: a save switches to Lists, and the result should stay visible. -->
       <p id="status" role="status"></p>
     </main>
+    <div id="pop" popover>
+      <p id="popTitle"></p>
+      <p id="popUrl" class="hint"></p>
+      <div class="row">
+        <button class="btn btn-primary" data-act="pop-open" type="button">Open</button>
+        <button class="btn btn-danger" data-act="pop-delete" type="button">Delete</button>
+      </div>
+    </div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
