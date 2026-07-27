@@ -1,4 +1,5 @@
 import { luminance, matchesDomain } from '../src/domain';
+import { send } from '../src/protocol';
 
 const invert = 'invert(1) hue-rotate(180deg)';
 const darkCss = `html{filter:${invert} !important;background:#fff !important}img,video,picture,canvas,iframe,embed{filter:${invert} !important}`;
@@ -12,8 +13,8 @@ export default defineContentScript({ matches: ['<all_urls>'], runAt: 'document_s
   let dirty = false;
   // `dirty` first: once the flag is set this still fires on every keystroke for the life of
   // the page, and the selector match is the expensive half.
-  addEventListener('input', e => { if (!dirty && (e.target as Element).matches('input,textarea,[contenteditable]')) { dirty = true; chrome.runtime.sendMessage({ type: 'unsaved', value: true }); } }, true);
-  addEventListener('submit', () => { dirty = false; chrome.runtime.sendMessage({ type: 'unsaved', value: false }); }, true);
+  addEventListener('input', e => { if (!dirty && (e.target as Element).matches('input,textarea,[contenteditable]')) { dirty = true; send('unsaved', { value: true }); } }, true);
+  addEventListener('submit', () => { dirty = false; send('unsaved', { value: false }); }, true);
   chrome.storage.sync.get('prefs').then(({ prefs }) => {
     const has = (list: string[] = []) => matchesDomain(location.href, list);
     // A stylesheet rather than inline styles: it also covers elements the page adds later,
