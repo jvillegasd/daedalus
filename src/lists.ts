@@ -55,7 +55,7 @@ export const apply = (all: TabGroup[], action: ListAction): TabGroup[] => {
     case 'tag-remove':
       return within(group.tags, action.index) ? put({ tags: group.tags.filter((_, i) => i !== action.index) }) : all;
     case 'append':
-      return put({ tabs: [...group.tabs, action.tab] });
+      return group.tabs.some(t => t.url === action.tab.url) ? all : put({ tabs: [...group.tabs, action.tab] });
     case 'tab-remove':
       return within(group.tabs, action.index) ? put({ tabs: group.tabs.filter((_, i) => i !== action.index) }) : all;
     case 'tab-move': {

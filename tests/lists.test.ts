@@ -41,6 +41,12 @@ describe('lists', () => {
     expect(next[0].tabs).toHaveLength(3);
   });
 
+  test('append ignores an exact URL already in the list', () => {
+    const all = lists();
+    expect(apply(all, { kind: 'append', group: 'a', tab: { ...tab(1), title: 'Duplicate' } })).toBe(all);
+    expect(apply(all, { kind: 'append', group: 'a', tab: { ...tab(1), url: `${tab(1).url}?page=2` } })).not.toBe(all);
+  });
+
   test('tab-move and group-move refuse to run off either end', () => {
     expect(apply(lists(), { kind: 'tab-move', group: 'a', index: 0, by: 1 })[0].tabs.map(t => t.title))
       .toEqual(['Site 2', 'Site 1', 'Site 3']);

@@ -7,6 +7,7 @@ import { send } from '../../src/protocol';
 import { parseTags } from '../../src/tags';
 import { pressedOn, read } from '../../src/preferences';
 import { targetHost, targetTab, toggleSite } from '../../src/surface';
+import { tabData } from '../../src/cleaner';
 const $ = (id: string) => document.getElementById(id) as HTMLInputElement;
 const status = (text: string, error = false) => { $('status').toggleAttribute('data-error', error); $('status').textContent = text; };
 
@@ -97,6 +98,7 @@ const detail = (g: TabGroup) => `<div class="detail-head">
   <ul>${g.tabs.map((t, i) => `<li><button class="link" data-act="item" data-i="${i}" type="button">${escape(t.title)}</button></li>`).join('') || '<li class="hint">Empty list.</li>'}</ul>
   <div class="row">
     <button class="btn" data-act="open-all" type="button">Open all</button>
+    <button class="btn" data-act="add-current" type="button">Add current tab</button>
   </div>`;
 // Deleting a whole list stays in the manager: it is the destructive one, and the popup is
 // a place you land on by accident.
@@ -131,8 +133,23 @@ function openPopover(button: HTMLElement, tab: SavedTab, i: number) {
 $('groups').onclick = async e => {
   const button = (e.target as HTMLElement).closest('button[data-act]') as HTMLElement | null;
   if (!button) return;
-  const list = await groups();
   const act = button.dataset.act;
+  if (act === 'add-current') {
+    button.toggleAttribute('disabled', true);
+    try {
+      const [list, t] = await Promise.all([groups(), activeTab()]);
+      if (!t?.url) return status('No page tab to save.', true);
+      const g = list.find(g => g.id === openId);
+      if (!g) { await renderGroups(list); return status('List no longer exists.', true); }
+      const next = apply(list, { kind: 'append', group: g.id, tab: tabData(t) });
+      if (next === list) return status('Already saved.');
+      await setGroups(next);
+      status('Added current tab.');
+      return renderGroups(next);
+    } catch (e) { return status(String(e), true); }
+    finally { button.toggleAttribute('disabled', false); }
+  }
+  const list = await groups();
   if (act === 'open-list') { openId = button.dataset.id!; return renderGroups(list); }
   if (act === 'back') { openId = null; return renderGroups(list); }
   const g = list.find(x => x.id === openId);
