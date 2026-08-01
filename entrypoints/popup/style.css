@@ -121,7 +121,7 @@ main > [role='tabpanel'][hidden] { display: none; }
   color: var(--text-tertiary);
   font-size: 10px;
 }
-/* The rows scroll inside the card, so the header and Open all stay put however long the
+/* The rows scroll inside the card, so the header and actions stay put however long the
    list is, and a long title clips rather than widening the popup. */
 #groups ul {
   list-style: none;
