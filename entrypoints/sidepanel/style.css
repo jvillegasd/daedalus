@@ -112,6 +112,23 @@ section > .btn { justify-self: start; }
 
 /* saved lists — the card treatment Media Bridge gives detected videos and downloads */
 #groups { display: grid; gap: var(--space-2); }
+.create-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 58px;
+  padding: var(--space-3);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.create-list:hover { background: var(--accent); color: var(--surface-0); }
 article {
   display: grid;
   gap: var(--space-2);

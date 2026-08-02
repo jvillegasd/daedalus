@@ -99,6 +99,9 @@ main > [role='tabpanel'][hidden] { display: none; }
 }
 .tile:hover { border-color: var(--accent); background: var(--surface-2); }
 .tile-count { font-size: 20px; font-weight: 600; color: var(--text-tertiary); margin-top: auto; }
+.tile.create-list { border-color: var(--accent); background: var(--accent-subtle); color: var(--accent); }
+.tile.create-list .tile-count { color: inherit; }
+.tile.create-list:hover { border-color: var(--accent); background: var(--accent); color: var(--surface-0); }
 /* Long names wrap and then clip: a tile that grows sideways would scroll the whole popup. */
 .tile-name {
   font-size: 12px;
