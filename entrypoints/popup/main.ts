@@ -1,5 +1,5 @@
 import './style.css';
-import { groups, setGroups } from '../../src/storage';
+import { createEmptyGroup, groups, setGroups } from '../../src/storage';
 import type { SavedTab, TabGroup } from '../../src/models';
 import { apply } from '../../src/lists';
 import { escape } from '../../src/html';
@@ -84,11 +84,15 @@ async function renderGroups(list?: TabGroup[]) {
   $('groups').innerHTML = open ? detail(open) : tiles(all);
 }
 
-const tiles = (all: TabGroup[]) => all.length ? `<div class="tiles">${all.map(g => `
+const tiles = (all: TabGroup[]) => `<div class="tiles">
+  <button class="tile create-list" data-act="create-list" type="button">
+    <span class="tile-count" aria-hidden="true">＋</span>
+    <span class="tile-name">Create empty list</span>
+  </button>${all.map(g => `
   <button class="tile" data-act="open-list" data-id="${g.id}" type="button" title="${escape(g.name)}">
     <span class="tile-count">${g.tabs.length}</span>
     <span class="tile-name">${escape(g.name)}</span>
-  </button>`).join('')}</div>` : '<p class="hint">No saved lists yet.</p>';
+  </button>`).join('')}</div>`;
 
 const detail = (g: TabGroup) => `<div class="detail-head">
     <button class="btn icon" data-act="back" type="button" aria-label="Back to lists">←</button>
@@ -134,6 +138,16 @@ $('groups').onclick = async e => {
   const button = (e.target as HTMLElement).closest('button[data-act]') as HTMLElement | null;
   if (!button) return;
   const act = button.dataset.act;
+  if (act === 'create-list') {
+    const name = prompt('List name', 'Untitled list');
+    if (name === null) return;
+    try {
+      await createEmptyGroup(name);
+      status('Created empty list.');
+      await renderGroups();
+    } catch (e) { status(String(e), true); }
+    return;
+  }
   if (act === 'add-current') {
     button.toggleAttribute('disabled', true);
     try {

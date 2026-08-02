@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { pipMessage, requestPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { mountCookies } from './cookies';
+import './style.css'; import { createEmptyGroup, groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { pipMessage, requestPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { mountCookies } from './cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -61,7 +61,7 @@ const card = (g: TabGroup) => `<article data-group="${g.id}">
 // have in hand means deserialising every saved list twice per click.
 // ponytail: still a full innerHTML rebuild. Patch a single <article> if lists get long
 // enough that reordering one tab feels slow.
-async function render(list?: TabGroup[]) { const all = list ?? await groups(); el('groups').innerHTML = all.map(card).join('') || '<p class="hint">No saved lists yet.</p>'; }
+async function render(list?: TabGroup[]) { const all = list ?? await groups(); el('groups').innerHTML = `<button class="create-list" data-act="create-list" type="button"><span aria-hidden="true">＋</span>Create empty list</button>${all.map(card).join('') || '<p class="hint">No saved lists yet.</p>'}`; }
 const commit = async (list: TabGroup[]) => { await setGroups(list); render(list); };
 // Read, apply, and write only if it changed: `apply` hands back the same array for a click
 // that did nothing — a list deleted in the popup a moment ago, a ↑ on the first tab — and
@@ -95,9 +95,14 @@ el('groups').onchange = async e => {
 el('groups').onclick = async e => {
   const button = (e.target as HTMLElement).closest('button[data-act]') as HTMLElement | null;
   if (!button) return;
+  const act = button.dataset.act;
+  if (act === 'create-list') {
+    const name = prompt('List name', 'Untitled list');
+    if (name !== null) { await createEmptyGroup(name); render(); }
+    return;
+  }
   const group = (button.closest('article') as HTMLElement).dataset.group!;
   const index = Number((button.closest('li') as HTMLElement | null)?.dataset.i ?? -1);
-  const act = button.dataset.act;
 
   // The three that are not transitions of the list: two open tabs, and one has to ask before
   // it destroys anything. They are the only ones that need the list itself in hand.
