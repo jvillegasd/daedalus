@@ -1,4 +1,4 @@
-import './style.css'; import { groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { pipMessage, requestPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { mountCookies } from './cookies';
+import './style.css'; import { createEmptyGroup, groups, setGroups } from '../../src/storage'; import { activeOn, liveField, pressedOn, read, toggleDomain, write, type DomainField, type Scoped } from '../../src/preferences'; import { key, type Preferences, type RestoreTab, type SavedTab, type TabGroup } from '../../src/models'; import { pipMessage, requestPip } from '../../src/pip'; import { apply, type ListAction } from '../../src/lists'; import { targetHost as host, targetTab as tab, toggleSite } from '../../src/surface'; import { escape } from '../../src/html'; import { send } from '../../src/protocol'; import { uaProfiles } from '../../src/ua'; import { setJs, toggleJs } from '../../src/jsblock'; import { addHost, tabData } from '../../src/cleaner'; import { redirectText, type Redirect } from '../../src/redirects'; import { mountCookies } from './cookies';
 const el = (id: string) => document.getElementById(id) as HTMLInputElement;
 
 // One section per feature. Wide shows the rail beside the section; narrow shows one or the
@@ -63,6 +63,7 @@ const card = (g: TabGroup) => `<article data-group="${g.id}">
 // enough that reordering one tab feels slow.
 async function render(list?: TabGroup[]) { const all = list ?? await groups(); el('groups').innerHTML = all.map(card).join('') || '<p class="hint">No saved lists yet.</p>'; }
 const commit = async (list: TabGroup[]) => { await setGroups(list); render(list); };
+el('createList').onclick = async () => { const name = prompt('List name', 'Untitled list'); if (name !== null) { await createEmptyGroup(name); render(); } };
 // Read, apply, and write only if it changed: `apply` hands back the same array for a click
 // that did nothing — a list deleted in the popup a moment ago, a ↑ on the first tab — and
 // re-rendering that would snap the open disclosures shut for no reason.

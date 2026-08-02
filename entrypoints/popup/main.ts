@@ -1,5 +1,5 @@
 import './style.css';
-import { groups, setGroups } from '../../src/storage';
+import { createEmptyGroup, groups, setGroups } from '../../src/storage';
 import type { SavedTab, TabGroup } from '../../src/models';
 import { apply } from '../../src/lists';
 import { escape } from '../../src/html';
@@ -176,6 +176,16 @@ $('pop').onclick = async e => {
 };
 
 renderGroups();
+
+$('createList').onclick = async () => {
+  const name = prompt('List name', 'Untitled list');
+  if (name === null) return;
+  try {
+    await createEmptyGroup(name);
+    status('Created empty list.');
+    await renderGroups();
+  } catch (e) { status(String(e), true); }
+};
 
 // Two panes: saving the current window, and the lists already saved. A save switches to
 // Lists so the result is visible instead of silently landing behind the other tab.
