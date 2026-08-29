@@ -5,21 +5,15 @@ import { handlers, redirects, setUnsaved, unsavedTabs, uaOverrides } from '../sr
 import { pipFailed, requestPip } from '../src/pip';
 import { handle } from '../src/protocol';
 import { uaRule, uaRuleId } from '../src/ua';
+import { setupContextMenus } from '../src/context-menus';
 
 export default defineBackground(() => {
-  // ponytail: optional — chrome.sidePanel is absent on browsers that don't ship the API,
-  // and an unguarded call here kills the whole service worker on startup.
-  chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
-  // Menus outlive the service worker, so re-creating them on every wake fails with a
-  // duplicate-id error. onInstalled is the one place they need creating.
-  chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.removeAll(() => {
-      chrome.contextMenus.create({ id: 'lens', title: 'Search image with Google Lens', contexts: ['image'] });
-      chrome.contextMenus.create({ id: 'bing', title: 'Search image with Bing', contexts: ['image'] });
-      chrome.contextMenus.create({ id: 'yandex', title: 'Search image with Yandex', contexts: ['image'] });
-      chrome.contextMenus.create({ id: 'pip', title: 'Picture-in-Picture', contexts: ['video', 'page'] });
-    });
-  });
+  // ponytail: optional — some Chromium browsers expose sidePanel without this method;
+  // an unguarded call kills the worker before its menus and listeners are registered.
+  chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true })?.catch(() => {});
+  // A reload or browser state restore does not reliably replay onInstalled. Rebuild after every
+  // worker start; removeAll makes that safe even when the menus already exist.
+  setupContextMenus();
   // Neither of these paths has anywhere to print a sentence, so a failure is a badge for a
   // few seconds — the same way an image with no fetchable URL says so below. Success needs no
   // announcement: the floating window is the announcement.
